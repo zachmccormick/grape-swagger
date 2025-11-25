@@ -10,7 +10,7 @@ module GrapeSwagger
         # @param encoding_config [Hash, nil] Encoding configuration
         # @param version [GrapeSwagger::OpenAPI::Version] OpenAPI version
         # @return [Hash, nil] Encoding object or nil
-        def build(field_name, encoding_config, version)
+        def build(_field_name, encoding_config, _version)
           return nil if encoding_config.nil? || encoding_config.empty?
 
           result = {}

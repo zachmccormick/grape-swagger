@@ -78,8 +78,8 @@ module GrapeSwagger
         # @param hash [Hash] Hash to copy
         # @return [Hash] Deep copy
         def deep_copy(hash)
-          hash.each_with_object({}) do |(key, value), copy|
-            copy[key] = value.is_a?(Hash) ? deep_copy(value) : value
+          hash.transform_values do |value|
+            value.is_a?(Hash) ? deep_copy(value) : value
           end
         end
 
@@ -89,9 +89,7 @@ module GrapeSwagger
         # @return [Hash] Schema fields
         def extract_schema_fields(param)
           SCHEMA_FIELDS.each_with_object({}) do |field, schema|
-            if param.key?(field)
-              schema[field] = param.delete(field)
-            end
+            schema[field] = param.delete(field) if param.key?(field)
           end
         end
 

@@ -221,5 +221,4 @@ describe 'OpenAPI 3.1.0 ResponseContent Integration' do
       expect(response).not_to have_key('content')
     end
   end
-
 end

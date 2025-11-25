@@ -104,7 +104,7 @@ describe GrapeSwagger::OpenAPI::EncodingBuilder do
       end
 
       it 'supports different style values' do
-        ['form', 'spaceDelimited', 'pipeDelimited', 'deepObject'].each do |style|
+        %w[form spaceDelimited pipeDelimited deepObject].each do |style|
           encoding_config = { style: style }
 
           result = described_class.build(:field, encoding_config, version)

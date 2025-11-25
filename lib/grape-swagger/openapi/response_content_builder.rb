@@ -116,7 +116,9 @@ module GrapeSwagger
         # @return [Boolean] true if named examples
         def has_named_examples?(examples)
           # If any value is a hash with :summary or :value keys, it's named examples
-          examples.values.any? { |v| v.is_a?(Hash) && (v.key?(:summary) || v.key?(:value) || v.key?('summary') || v.key?('value')) }
+          examples.values.any? do |v|
+            v.is_a?(Hash) && (v.key?(:summary) || v.key?(:value) || v.key?('summary') || v.key?('value'))
+          end
         end
       end
     end

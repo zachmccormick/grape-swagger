@@ -106,7 +106,7 @@ module GrapeSwagger
         # @param media_type [String] Media type string
         # @param version [GrapeSwagger::OpenAPI::Version] OpenAPI version
         # @return [Hash] Media type object with schema and examples
-        def build_media_type_object(schema, examples, media_type, version)
+        def build_media_type_object(schema, examples, media_type, _version)
           result = {
             schema: schema
           }
