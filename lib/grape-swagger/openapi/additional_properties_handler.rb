@@ -57,12 +57,8 @@ module GrapeSwagger
 
         additional_props = options[:additional_properties]
 
-        # Handle both boolean and schema values
-        if additional_props.is_a?(Hash)
-          schema[:additionalProperties] = additional_props
-        else
-          schema[:additionalProperties] = additional_props
-        end
+        # Both boolean and schema values are supported
+        schema[:additionalProperties] = additional_props
       end
 
       private_class_method def self.apply_unevaluated_properties(schema, version, options)
@@ -71,12 +67,8 @@ module GrapeSwagger
 
         unevaluated_props = options[:unevaluated_properties]
 
-        # Handle both boolean and schema values
-        if unevaluated_props.is_a?(Hash)
-          schema[:unevaluatedProperties] = unevaluated_props
-        else
-          schema[:unevaluatedProperties] = unevaluated_props
-        end
+        # Both boolean and schema values are supported
+        schema[:unevaluatedProperties] = unevaluated_props
       end
 
       private_class_method def self.apply_pattern_properties(schema, version, options)
