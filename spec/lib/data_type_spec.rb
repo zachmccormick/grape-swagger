@@ -108,4 +108,54 @@ describe GrapeSwagger::DocMethods::DataType do
 
     it { is_expected.to eq('integer') }
   end
+
+  describe 'OpenAPI 3.1.0 type mappings via .mapping' do
+    context 'with version 3.1.0' do
+      it 'returns hash with type for integer' do
+        result = described_class.mapping('integer', '3.1.0')
+        expect(result).to eq({ type: 'integer' })
+      end
+
+      it 'returns hash with type and constraints for long' do
+        result = described_class.mapping('long', '3.1.0')
+        expect(result[:type]).to eq('integer')
+        expect(result[:minimum]).to eq(-2**63)
+        expect(result[:maximum]).to eq(2**63 - 1)
+      end
+
+      it 'returns hash with type for float' do
+        result = described_class.mapping('float', '3.1.0')
+        expect(result).to eq({ type: 'number' })
+      end
+
+      it 'returns hash with contentEncoding for binary' do
+        result = described_class.mapping('binary', '3.1.0')
+        expect(result[:type]).to eq('string')
+        expect(result[:contentEncoding]).to eq('base64')
+        expect(result[:contentMediaType]).to eq('application/octet-stream')
+      end
+
+      it 'returns hash with format for date' do
+        result = described_class.mapping('date', '3.1.0')
+        expect(result).to eq({ type: 'string', format: 'date' })
+      end
+
+      it 'returns hash with format for email' do
+        result = described_class.mapping('email', '3.1.0')
+        expect(result).to eq({ type: 'string', format: 'email' })
+      end
+    end
+
+    context 'without version (defaults to Swagger 2.0)' do
+      it 'returns array [type, format] for integer' do
+        result = described_class.mapping('integer')
+        expect(result).to eq(%w[integer int32])
+      end
+
+      it 'returns array [type, format] for date' do
+        result = described_class.mapping('date')
+        expect(result).to eq(%w[string date])
+      end
+    end
+  end
 end
