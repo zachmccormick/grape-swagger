@@ -43,3 +43,4 @@ vendor/bundle/
 spec/swagger_v2/x-dummy.rb
 coverage/
 .byebug_history
+.claude/
