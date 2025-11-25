@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'content_negotiator'
+
 module GrapeSwagger
   module OpenAPI
     class RequestBodyBuilder
@@ -69,7 +71,12 @@ module GrapeSwagger
         # @param version [GrapeSwagger::OpenAPI::Version] The OpenAPI version
         # @return [Hash] Content object with media type keys
         def build_content(body_params, consumes, version)
-          consumes.each_with_object({}) do |media_type, content|
+          # Prioritize media types using ContentNegotiator
+          negotiated = ContentNegotiator.negotiate(consumes, [])
+          prioritized_types = negotiated[:request_types]
+
+          # Build schema for each media type
+          prioritized_types.each_with_object({}) do |media_type, content|
             content[media_type] = build_media_type_object(body_params, media_type, version)
           end
         end

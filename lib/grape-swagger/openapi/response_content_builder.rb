@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'schema_resolver'
+require_relative 'content_negotiator'
 
 module GrapeSwagger
   module OpenAPI
@@ -46,7 +47,11 @@ module GrapeSwagger
           # Return nil if produces is nil or empty
           return nil if produces.nil? || produces.empty?
 
-          produces.each_with_object({}) do |media_type, content|
+          # Prioritize media types using ContentNegotiator
+          negotiated = ContentNegotiator.negotiate([], produces)
+          prioritized_types = negotiated[:response_types]
+
+          prioritized_types.each_with_object({}) do |media_type, content|
             content[media_type] = build_media_type_object(response, media_type, version)
           end
         end
