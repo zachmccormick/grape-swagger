@@ -45,9 +45,9 @@ describe 'Version Management System Integration' do
     end
 
     it 'can be raised and caught' do
-      expect {
+      expect do
         raise GrapeSwagger::OpenAPI::Errors::UnsupportedVersionError.new('4.0.0', ['2.0', '3.1.0'])
-      }.to raise_error(GrapeSwagger::OpenAPI::Errors::UnsupportedVersionError)
+      end.to raise_error(GrapeSwagger::OpenAPI::Errors::UnsupportedVersionError)
     end
   end
 

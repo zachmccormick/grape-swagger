@@ -21,7 +21,9 @@ module GrapeSwagger
       end
 
       def self.validate_version(version)
-        raise Errors::UnsupportedVersionError.new(version, SUPPORTED_VERSIONS) unless SUPPORTED_VERSIONS.include?(version)
+        return if SUPPORTED_VERSIONS.include?(version)
+
+        raise Errors::UnsupportedVersionError.new(version, SUPPORTED_VERSIONS)
       end
 
       def self.supported_versions
