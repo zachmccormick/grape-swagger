@@ -56,6 +56,9 @@ module GrapeSwagger
           # Translate nested schemas
           translate_nested(result, version)
 
+          # Apply transformations for OpenAPI 3.1.0
+          result = apply_transformations(result, version)
+
           result
         end
 
@@ -184,6 +187,23 @@ module GrapeSwagger
           return unless add_props_key && schema[add_props_key].is_a?(Hash)
 
           schema[add_props_key] = translate_schema(schema[add_props_key], version)
+        end
+
+        # Apply nullable and binary transformations for OpenAPI 3.1.0
+        #
+        # @param schema [Hash] The schema object
+        # @param version [GrapeSwagger::OpenAPI::Version] The OpenAPI version
+        # @return [Hash] The transformed schema
+        def apply_transformations(schema, version)
+          result = schema
+
+          # Apply binary data encoding (format: 'binary' -> contentEncoding)
+          result = BinaryDataEncoder.encode(result, version)
+
+          # Apply nullable type transformation (nullable: true -> type array)
+          result = NullableTypeHandler.transform(result, version)
+
+          result
         end
       end
     end

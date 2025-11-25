@@ -283,6 +283,55 @@ RSpec.describe GrapeSwagger::OpenAPI::SchemaResolver do
         result = described_class.translate_components(schemas, openapi_version)
         expect(result).to eq({})
       end
+
+      it 'applies nullable transformation to schemas' do
+        schema = {
+          type: 'string',
+          nullable: true
+        }
+        result = described_class.translate_schema(schema, openapi_version)
+        expect(result[:type]).to eq(['string', 'null'])
+        expect(result).not_to have_key(:nullable)
+      end
+
+      it 'applies binary encoding transformation to schemas' do
+        schema = {
+          type: 'string',
+          format: 'binary'
+        }
+        result = described_class.translate_schema(schema, openapi_version)
+        expect(result[:type]).to eq('string')
+        expect(result[:contentEncoding]).to eq('base64')
+        expect(result[:contentMediaType]).to eq('application/octet-stream')
+        expect(result).not_to have_key(:format)
+      end
+
+      it 'applies both nullable and binary transformations' do
+        schema = {
+          type: 'string',
+          format: 'binary',
+          nullable: true
+        }
+        result = described_class.translate_schema(schema, openapi_version)
+        expect(result[:type]).to eq(['string', 'null'])
+        expect(result[:contentEncoding]).to eq('base64')
+        expect(result[:contentMediaType]).to eq('application/octet-stream')
+        expect(result).not_to have_key(:format)
+        expect(result).not_to have_key(:nullable)
+      end
+
+      it 'transforms nested nullable properties' do
+        schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string', nullable: true },
+            age: { type: 'integer', nullable: true }
+          }
+        }
+        result = described_class.translate_schema(schema, openapi_version)
+        expect(result[:properties][:name][:type]).to eq(['string', 'null'])
+        expect(result[:properties][:age][:type]).to eq(['integer', 'null'])
+      end
     end
   end
 end
