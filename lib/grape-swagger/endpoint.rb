@@ -6,6 +6,8 @@ require_relative 'request_param_parsers/headers'
 require_relative 'request_param_parsers/route'
 require_relative 'request_param_parsers/body'
 require_relative 'token_owner_resolver'
+require_relative 'openapi/version_selector'
+require_relative 'openapi/request_body_builder'
 
 module Grape
   class Endpoint # rubocop:disable Metrics/ClassLength
@@ -25,6 +27,21 @@ module Grape
     #
     # required keys for SwaggerObject
     def swagger_object(target_class, request, options)
+      # Determine OpenAPI version
+      version = GrapeSwagger::OpenAPI::VersionSelector.build_spec(options)
+
+      # For OpenAPI 3.1.0, use SpecBuilderV3_1
+      if version.openapi_3_1_0?
+        return GrapeSwagger::OpenAPI::SpecBuilderV3_1.build(
+          info: options[:info].merge(version: options[:doc_version]),
+          paths: {},
+          tags: [],
+          security: options[:security],
+          externalDocs: options[:external_docs]
+        )
+      end
+
+      # For Swagger 2.0, use the standard swagger object
       object = {
         info: info_object(options[:info].merge(version: options[:doc_version])),
         swagger: '2.0',
@@ -126,9 +143,42 @@ module Grape
       method[:tags]        = route.options.fetch(:tags, tag_object(route, path))
       method[:operationId] = GrapeSwagger::DocMethods::OperationId.build(route, path)
       method[:deprecated] = deprecated_object(route)
+
+      # Add requestBody for OpenAPI 3.1.0
+      version = GrapeSwagger::OpenAPI::VersionSelector.build_spec(options)
+      if version.openapi_3_1_0?
+        # Extract body parameters before removing them from parameters array
+        body_params = extract_body_params(method[:parameters])
+
+        # Build requestBody from body parameters
+        request_body = GrapeSwagger::OpenAPI::RequestBodyBuilder.build(
+          body_params,
+          route.request_method,
+          method[:consumes],
+          version
+        )
+        method[:requestBody] = request_body if request_body
+
+        # Remove body parameters from parameters array for OpenAPI 3.1.0
+        if method[:parameters]
+          method[:parameters] = method[:parameters].reject { |p| p[:in] == 'body' }
+          method.delete(:parameters) if method[:parameters].empty?
+        end
+      end
+
       method.delete_if { |_, value| value.nil? }
 
       [route.request_method.downcase.to_sym, method]
+    end
+
+    # Extract parameters with in: 'body'
+    #
+    # @param parameters [Array<Hash>] All parameters
+    # @return [Array<Hash>] Body parameters only
+    def extract_body_params(parameters)
+      return [] unless parameters.is_a?(Array)
+
+      parameters.select { |p| p.is_a?(Hash) && p[:in] == 'body' }
     end
 
     def deprecated_object(route)
