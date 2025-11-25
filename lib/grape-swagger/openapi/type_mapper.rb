@@ -26,7 +26,7 @@ module GrapeSwagger
       # OpenAPI 3.1.0 type mappings following JSON Schema 2020-12
       OPENAPI_3_1_TYPES = {
         'integer' => { type: 'integer' },
-        'long' => { type: 'integer', minimum: -2**63, maximum: 2**63 - 1 },
+        'long' => { type: 'integer', minimum: -2**63, maximum: (2**63) - 1 },
         'float' => { type: 'number' },
         'double' => { type: 'number' },
         'string' => { type: 'string' },

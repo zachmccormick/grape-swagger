@@ -16,7 +16,7 @@ describe GrapeSwagger::OpenAPI::TypeMapper do
           result = described_class.map('long', '3.1.0')
           expect(result[:type]).to eq('integer')
           expect(result[:minimum]).to eq(-2**63)
-          expect(result[:maximum]).to eq(2**63 - 1)
+          expect(result[:maximum]).to eq((2**63) - 1)
           expect(result).not_to have_key(:format)
         end
       end
@@ -207,18 +207,18 @@ describe GrapeSwagger::OpenAPI::TypeMapper do
 
     context 'type arrays' do
       it 'returns type as array for multiple types' do
-        result = described_class.map_with_type_array(['string', 'number'], '3.1.0')
-        expect(result[:type]).to eq(['string', 'number'])
+        result = described_class.map_with_type_array(%w[string number], '3.1.0')
+        expect(result[:type]).to eq(%w[string number])
       end
 
       it 'removes duplicate types from array' do
-        result = described_class.map_with_type_array(['string', 'string', 'number'], '3.1.0')
-        expect(result[:type]).to eq(['string', 'number'])
+        result = described_class.map_with_type_array(%w[string string number], '3.1.0')
+        expect(result[:type]).to eq(%w[string number])
       end
 
       it 'handles type array with null' do
-        result = described_class.map_with_type_array(['string', 'null'], '3.1.0')
-        expect(result[:type]).to eq(['string', 'null'])
+        result = described_class.map_with_type_array(%w[string null], '3.1.0')
+        expect(result[:type]).to eq(%w[string null])
       end
 
       it 'rejects empty type array' do
@@ -228,14 +228,14 @@ describe GrapeSwagger::OpenAPI::TypeMapper do
       end
 
       it 'does not include format for type arrays' do
-        result = described_class.map_with_type_array(['string', 'number'], '3.1.0')
+        result = described_class.map_with_type_array(%w[string number], '3.1.0')
         expect(result).not_to have_key(:format)
       end
     end
 
     context 'Swagger 2.0 compatibility' do
       it 'does not support type arrays in Swagger 2.0' do
-        result = described_class.map_with_type_array(['string', 'number'], '2.0')
+        result = described_class.map_with_type_array(%w[string number], '2.0')
         # Should only return the first type for backward compatibility
         expect(result).to eq('string')
       end
@@ -262,16 +262,16 @@ describe GrapeSwagger::OpenAPI::TypeMapper do
     end
 
     it 'preserves type arrays' do
-      mapping = { type: ['string', 'number'] }
+      mapping = { type: %w[string number] }
       result = described_class.to_json_schema_type(mapping)
-      expect(result).to eq({ type: ['string', 'number'] })
+      expect(result).to eq({ type: %w[string number] })
     end
 
     it 'preserves constraints (minimum, maximum)' do
-      mapping = { type: 'integer', minimum: -2**63, maximum: 2**63 - 1 }
+      mapping = { type: 'integer', minimum: -2**63, maximum: (2**63) - 1 }
       result = described_class.to_json_schema_type(mapping)
       expect(result[:minimum]).to eq(-2**63)
-      expect(result[:maximum]).to eq(2**63 - 1)
+      expect(result[:maximum]).to eq((2**63) - 1)
     end
   end
 end
