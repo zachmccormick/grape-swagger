@@ -3,14 +3,30 @@
 require 'spec_helper'
 
 describe 'OpenAPI 3.1.0 ResponseContent Integration' do
+  module Entities
+    class Item < Grape::Entity
+      expose :id, documentation: { type: Integer }
+      expose :name, documentation: { type: String }
+    end
+
+    class Items < Grape::Entity
+      expose :items, using: Item
+    end
+
+    class Example < Grape::Entity
+      expose :id, documentation: { type: Integer }
+      expose :name, documentation: { type: String }
+    end
+  end
+
   def app
     Class.new(Grape::API) do
       format :json
 
       desc 'Get items',
            success: [
-             { code: 200, message: 'Success' },
-             { code: 201, message: 'Created' }
+             { code: 200, message: 'Success', model: Entities::Items },
+             { code: 201, message: 'Created', model: Entities::Items }
            ],
            failure: [
              { code: 400, message: 'Bad Request' },
@@ -24,7 +40,7 @@ describe 'OpenAPI 3.1.0 ResponseContent Integration' do
       end
 
       desc 'Create item',
-           success: { code: 201, message: 'Created' }
+           success: { code: 201, message: 'Created', model: Entities::Item }
       params do
         requires :name, type: String
       end
@@ -42,6 +58,7 @@ describe 'OpenAPI 3.1.0 ResponseContent Integration' do
            success: {
              code: 200,
              message: 'Success',
+             model: Entities::Example,
              examples: {
                'application/json' => { id: 1, name: 'Example' }
              }
@@ -117,6 +134,58 @@ describe 'OpenAPI 3.1.0 ResponseContent Integration' do
       response = spec.dig('paths', '/items/{id}', 'delete', 'responses', '204')
       expect(response).to have_key('description')
       expect(response['description']).to eq('No Content')
+    end
+  end
+
+  describe 'Content structure verification for OpenAPI 3.1.0' do
+    subject(:spec) do
+      get '/swagger_doc'
+      JSON.parse(last_response.body)
+    end
+
+    it 'wraps response schema in content object' do
+      response = spec.dig('paths', '/items', 'get', 'responses', '200')
+      expect(response).to have_key('content')
+      expect(response['content']).to have_key('application/json')
+      expect(response['content']['application/json']).to have_key('schema')
+    end
+
+    it 'does not include schema at response level' do
+      response = spec.dig('paths', '/items', 'get', 'responses', '200')
+      expect(response).not_to have_key('schema')
+    end
+
+    it 'includes media type key in content object' do
+      response = spec.dig('paths', '/items', 'get', 'responses', '200')
+      expect(response['content']).to have_key('application/json')
+    end
+
+    it 'contains schema nested under media type' do
+      response = spec.dig('paths', '/items', 'get', 'responses', '200')
+      schema = response.dig('content', 'application/json', 'schema')
+      expect(schema).not_to be_nil
+      expect(schema).to be_a(Hash)
+    end
+  end
+
+  describe 'Examples in content object' do
+    subject(:spec) do
+      get '/swagger_doc'
+      JSON.parse(last_response.body)
+    end
+
+    it 'includes examples in content object' do
+      response = spec.dig('paths', '/with-examples', 'get', 'responses', '200')
+      expect(response).to have_key('content')
+      expect(response['content']).to have_key('application/json')
+    end
+
+    it 'verifies examples are properly nested in content' do
+      response = spec.dig('paths', '/with-examples', 'get', 'responses', '200')
+      content = response['content']['application/json']
+      expect(content).to have_key('schema')
+      # Examples should be in the content object, not at response level
+      expect(response).not_to have_key('examples')
     end
   end
 
