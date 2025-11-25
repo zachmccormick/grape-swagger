@@ -203,6 +203,12 @@ module GrapeSwagger
           # Apply nullable type transformation (nullable: true -> type array)
           result = NullableTypeHandler.transform(result, version)
 
+          # Apply conditional schema transformation (if/then/else)
+          result = ConditionalSchemaBuilder.build(result, version)
+
+          # Apply dependent schemas transformation (dependencies -> dependentSchemas/dependentRequired)
+          result = DependentSchemaHandler.transform(result, version)
+
           result
         end
       end
