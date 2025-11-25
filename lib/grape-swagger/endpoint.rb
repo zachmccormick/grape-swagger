@@ -8,6 +8,7 @@ require_relative 'request_param_parsers/body'
 require_relative 'token_owner_resolver'
 require_relative 'openapi/version_selector'
 require_relative 'openapi/request_body_builder'
+require_relative 'openapi/response_content_builder'
 
 module Grape
   class Endpoint # rubocop:disable Metrics/ClassLength
@@ -144,7 +145,7 @@ module Grape
       method[:operationId] = GrapeSwagger::DocMethods::OperationId.build(route, path)
       method[:deprecated] = deprecated_object(route)
 
-      # Add requestBody for OpenAPI 3.1.0
+      # Add requestBody and wrap responses for OpenAPI 3.1.0
       version = GrapeSwagger::OpenAPI::VersionSelector.build_spec(options)
       if version.openapi_3_1_0?
         # Extract body parameters before removing them from parameters array
@@ -163,6 +164,17 @@ module Grape
         if method[:parameters]
           method[:parameters] = method[:parameters].reject { |p| p[:in] == 'body' }
           method.delete(:parameters) if method[:parameters].empty?
+        end
+
+        # Wrap response schemas in content objects for OpenAPI 3.1.0
+        if method[:responses]
+          method[:responses] = method[:responses].transform_values do |response|
+            GrapeSwagger::OpenAPI::ResponseContentBuilder.build(
+              response,
+              method[:produces],
+              version
+            )
+          end
         end
       end
 
