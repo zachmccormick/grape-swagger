@@ -20,6 +20,7 @@ require 'grape-swagger/openapi/reference_validator'
 require 'grape-swagger/openapi/info_builder'
 require 'grape-swagger/openapi/servers_builder'
 require 'grape-swagger/openapi/components_builder'
+require 'grape-swagger/openapi/request_body_builder'
 require 'grape-swagger/openapi/spec_builder_v3_1'
 
 module GrapeSwagger
