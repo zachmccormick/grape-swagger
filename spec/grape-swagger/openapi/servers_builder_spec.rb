@@ -29,7 +29,7 @@ describe GrapeSwagger::OpenAPI::ServersBuilder do
               variables: {
                 environment: {
                   default: 'production',
-                  enum: ['production', 'staging', 'development']
+                  enum: %w[production staging development]
                 },
                 version: {
                   default: 'v1'
@@ -43,7 +43,7 @@ describe GrapeSwagger::OpenAPI::ServersBuilder do
         expect(servers[0][:url]).to eq('https://{environment}.api.example.com/{version}')
         expect(servers[0][:variables]).to be_a(Hash)
         expect(servers[0][:variables][:environment][:default]).to eq('production')
-        expect(servers[0][:variables][:environment][:enum]).to eq(['production', 'staging', 'development'])
+        expect(servers[0][:variables][:environment][:enum]).to eq(%w[production staging development])
         expect(servers[0][:variables][:version][:default]).to eq('v1')
       end
     end
@@ -66,7 +66,7 @@ describe GrapeSwagger::OpenAPI::ServersBuilder do
         options = {
           host: 'api.example.com',
           base_path: '/v1',
-          schemes: ['https', 'http']
+          schemes: %w[https http]
         }
         servers = described_class.build(options)
 

@@ -14,7 +14,7 @@ describe 'Sprint 2: Core Structural Components Integration' do
         },
         host: 'api.example.com',
         base_path: '/v1',
-        schemes: ['https', 'http'],
+        schemes: %w[https http],
         definitions: {
           'User' => {
             type: 'object',
@@ -23,7 +23,7 @@ describe 'Sprint 2: Core Structural Components Integration' do
               name: { type: 'string' },
               email: { type: 'string', format: 'email' }
             },
-            required: ['id', 'name']
+            required: %w[id name]
           },
           'Post' => {
             type: 'object',
@@ -224,7 +224,7 @@ describe 'Sprint 2: Core Structural Components Integration' do
               variables: {
                 environment: {
                   default: 'production',
-                  enum: ['production', 'staging', 'development'],
+                  enum: %w[production staging development],
                   description: 'Environment name'
                 },
                 version: {

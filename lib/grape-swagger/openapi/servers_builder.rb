@@ -32,9 +32,7 @@ module GrapeSwagger
       def self.build_server_url(scheme, host, base_path)
         url_parts = []
 
-        if host
-          url_parts << "#{scheme}://#{host}"
-        end
+        url_parts << "#{scheme}://#{host}" if host
 
         if base_path
           if host

@@ -42,10 +42,8 @@ module GrapeSwagger
         def extract_refs_from_value(value, refs)
           case value
           when Hash
-            if value['$ref']
-              refs << value['$ref']
-            end
-            value.each { |_k, v| extract_refs_from_value(v, refs) }
+            refs << value['$ref'] if value['$ref']
+            value.each_value { |v| extract_refs_from_value(v, refs) }
           when Array
             value.each { |v| extract_refs_from_value(v, refs) }
           end
@@ -69,9 +67,7 @@ module GrapeSwagger
           validate_reference(ref)
         end
 
-        if options[:detect_circular]
-          detect_circular_references
-        end
+        detect_circular_references if options[:detect_circular]
 
         {
           valid: errors.empty?,
@@ -86,7 +82,7 @@ module GrapeSwagger
         # Check for deprecated Swagger 2.0 style in OpenAPI 3.1.0 spec
         if spec['openapi']&.start_with?('3.') && ref.include?('#/definitions/')
           warnings << "Deprecated reference style found: #{ref}. " \
-                     "Use #/components/schemas/ for OpenAPI 3.x"
+                      'Use #/components/schemas/ for OpenAPI 3.x'
         end
 
         # Handle external references
@@ -117,11 +113,11 @@ module GrapeSwagger
 
         ref_path = ref.sub('#/', '')
 
-        unless @available_refs.include?(ref_path)
-          # Find which schema is referencing this missing ref
-          context = find_reference_context(ref)
-          errors << "Reference #{ref} not found in specification#{context}"
-        end
+        return if @available_refs.include?(ref_path)
+
+        # Find which schema is referencing this missing ref
+        context = find_reference_context(ref)
+        errors << "Reference #{ref} not found in specification#{context}"
       end
 
       def find_reference_context(ref)
@@ -130,11 +126,9 @@ module GrapeSwagger
 
         find_ref_location(spec, ref, [], context_parts)
 
-        if context_parts.any?
-          " (referenced from: #{context_parts.first})"
-        else
-          ""
-        end
+        return " (referenced from: #{context_parts.first})" if context_parts.any?
+
+        ''
       end
 
       def find_ref_location(value, target_ref, path, results)
@@ -158,61 +152,48 @@ module GrapeSwagger
 
       def build_available_refs
         refs = Set.new
-
-        # Add all schemas
-        if spec['components']&.[]('schemas')
-          spec['components']['schemas'].each_key do |name|
-            refs << "components/schemas/#{name}"
-          end
-        end
-
-        # Support legacy definitions (Swagger 2.0)
-        if spec['definitions']
-          spec['definitions'].each_key do |name|
-            refs << "definitions/#{name}"
-          end
-        end
-
-        # Add all responses
-        if spec['components']&.[]('responses')
-          spec['components']['responses'].each_key do |name|
-            refs << "components/responses/#{name}"
-          end
-        end
-
-        # Support legacy responses
-        if spec['responses']
-          spec['responses'].each_key do |name|
-            refs << "responses/#{name}"
-          end
-        end
-
-        # Add all parameters
-        if spec['components']&.[]('parameters')
-          spec['components']['parameters'].each_key do |name|
-            refs << "components/parameters/#{name}"
-          end
-        end
-
-        # Support legacy parameters
-        if spec['parameters']
-          spec['parameters'].each_key do |name|
-            refs << "parameters/#{name}"
-          end
-        end
-
-        # Add other component types
-        if spec['components']
-          %w[examples requestBodies headers securitySchemes links callbacks].each do |component_type|
-            next unless spec['components'][component_type]
-
-            spec['components'][component_type].each_key do |name|
-              refs << "components/#{component_type}/#{name}"
-            end
-          end
-        end
-
+        add_schema_refs(refs)
+        add_response_refs(refs)
+        add_parameter_refs(refs)
+        add_other_component_refs(refs)
         refs
+      end
+
+      def add_schema_refs(refs)
+        spec['components']&.[]('schemas')&.each_key do |name|
+          refs << "components/schemas/#{name}"
+        end
+        spec['definitions']&.each_key do |name|
+          refs << "definitions/#{name}"
+        end
+      end
+
+      def add_response_refs(refs)
+        spec['components']&.[]('responses')&.each_key do |name|
+          refs << "components/responses/#{name}"
+        end
+        spec['responses']&.each_key do |name|
+          refs << "responses/#{name}"
+        end
+      end
+
+      def add_parameter_refs(refs)
+        spec['components']&.[]('parameters')&.each_key do |name|
+          refs << "components/parameters/#{name}"
+        end
+        spec['parameters']&.each_key do |name|
+          refs << "parameters/#{name}"
+        end
+      end
+
+      def add_other_component_refs(refs)
+        return unless spec['components']
+
+        %w[examples requestBodies headers securitySchemes links callbacks].each do |component_type|
+          spec['components'][component_type]&.each_key do |name|
+            refs << "components/#{component_type}/#{name}"
+          end
+        end
       end
 
       def detect_circular_references
@@ -223,15 +204,14 @@ module GrapeSwagger
 
         schemas.each_key do |schema_name|
           path = ["#/#{prefix}/#{schema_name}"]
-          if has_circular_reference?(schemas[schema_name], schema_name, path, prefix)
-            # Check if it's a self-reference
-            if path.length == 2 && options[:allow_self_reference]
-              # Self-reference is allowed, don't warn
-              next
-            end
+          is_circular = has_circular_reference?(schemas[schema_name], schema_name, path, prefix)
 
-            warnings << "Circular reference detected: #{path.join(' -> ')}"
-          end
+          # Check if it's a self-reference
+          is_self_ref = path.length == 2 && options[:allow_self_reference]
+
+          next if is_circular && is_self_ref
+
+          warnings << "Circular reference detected: #{path.join(' -> ')}" if is_circular
         end
       end
 
@@ -243,9 +223,7 @@ module GrapeSwagger
           ref_name = schema['$ref'].split('/').last
 
           # Found circular reference
-          if ref_name == target_name
-            return true
-          end
+          return true if ref_name == target_name
 
           # Avoid infinite recursion
           return false if visited.include?(ref_name)

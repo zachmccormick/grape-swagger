@@ -50,10 +50,8 @@ module GrapeSwagger
           result = deep_dup(schema)
 
           # Translate direct $ref (handle both string and symbol keys)
-          ref_key = result.key?('$ref') ? '$ref' : (result.key?(:'$ref') ? :'$ref' : nil)
-          if ref_key
-            result[ref_key] = translate_ref(result[ref_key], version)
-          end
+          ref_key = find_key(result, '$ref')
+          result[ref_key] = translate_ref(result[ref_key], version) if ref_key
 
           # Translate nested schemas
           translate_nested(result, version)
@@ -106,15 +104,15 @@ module GrapeSwagger
         def deep_dup(hash)
           return hash unless hash.is_a?(Hash)
 
-          hash.each_with_object({}) do |(key, value), result|
-            result[key] = case value
-                          when Hash
-                            deep_dup(value)
-                          when Array
-                            value.map { |v| v.is_a?(Hash) ? deep_dup(v) : v }
-                          else
-                            value
-                          end
+          hash.transform_values do |value|
+            case value
+            when Hash
+              deep_dup(value)
+            when Array
+              value.map { |v| v.is_a?(Hash) ? deep_dup(v) : v }
+            else
+              value
+            end
           end
         end
 
@@ -123,44 +121,69 @@ module GrapeSwagger
           hash[key] || hash[key.to_sym]
         end
 
+        # Find the key in a hash supporting both string and symbol keys
+        # Returns the key if found, nil otherwise
+        def find_key(hash, string_key)
+          return string_key if hash.key?(string_key)
+
+          symbol_key = string_key.to_sym
+          symbol_key if hash.key?(symbol_key)
+        end
+
         # Recursively translates nested schema structures
         #
         # @param schema [Hash] The schema object
         # @param version [GrapeSwagger::OpenAPI::Version] The OpenAPI version
         def translate_nested(schema, version)
-          # Handle properties (support both string and symbol keys)
-          props_key = schema.key?('properties') ? 'properties' : (schema.key?(:properties) ? :properties : nil)
-          if props_key && schema[props_key].is_a?(Hash)
-            schema[props_key].each do |key, value|
-              schema[props_key][key] = translate_schema(value, version)
-            end
-          end
+          translate_properties(schema, version)
+          translate_items(schema, version)
+          translate_composition_keywords(schema, version)
+          translate_not(schema, version)
+          translate_additional_properties(schema, version)
+        end
 
-          # Handle array items
-          items_key = schema.key?('items') ? 'items' : (schema.key?(:items) ? :items : nil)
-          if items_key && schema[items_key].is_a?(Hash)
-            schema[items_key] = translate_schema(schema[items_key], version)
-          end
+        # Translate properties in a schema
+        def translate_properties(schema, version)
+          props_key = find_key(schema, 'properties')
+          return unless props_key && schema[props_key].is_a?(Hash)
 
-          # Handle allOf, oneOf, anyOf
+          schema[props_key].each do |key, value|
+            schema[props_key][key] = translate_schema(value, version)
+          end
+        end
+
+        # Translate items in a schema (for arrays)
+        def translate_items(schema, version)
+          items_key = find_key(schema, 'items')
+          return unless items_key && schema[items_key].is_a?(Hash)
+
+          schema[items_key] = translate_schema(schema[items_key], version)
+        end
+
+        # Translate composition keywords (allOf, oneOf, anyOf)
+        def translate_composition_keywords(schema, version)
           %w[allOf oneOf anyOf].each do |keyword|
-            key = schema.key?(keyword) ? keyword : (schema.key?(keyword.to_sym) ? keyword.to_sym : nil)
-            if key && schema[key].is_a?(Array)
-              schema[key] = schema[key].map { |s| translate_schema(s, version) }
-            end
-          end
+            key = find_key(schema, keyword)
+            next unless key && schema[key].is_a?(Array)
 
-          # Handle not
-          not_key = schema.key?('not') ? 'not' : (schema.key?(:not) ? :not : nil)
-          if not_key && schema[not_key].is_a?(Hash)
-            schema[not_key] = translate_schema(schema[not_key], version)
+            schema[key] = schema[key].map { |s| translate_schema(s, version) }
           end
+        end
 
-          # Handle additionalProperties
-          add_props_key = schema.key?('additionalProperties') ? 'additionalProperties' : (schema.key?(:additionalProperties) ? :additionalProperties : nil)
-          if add_props_key && schema[add_props_key].is_a?(Hash)
-            schema[add_props_key] = translate_schema(schema[add_props_key], version)
-          end
+        # Translate not constraint in a schema
+        def translate_not(schema, version)
+          not_key = find_key(schema, 'not')
+          return unless not_key && schema[not_key].is_a?(Hash)
+
+          schema[not_key] = translate_schema(schema[not_key], version)
+        end
+
+        # Translate additionalProperties in a schema
+        def translate_additional_properties(schema, version)
+          add_props_key = find_key(schema, 'additionalProperties')
+          return unless add_props_key && schema[add_props_key].is_a?(Hash)
+
+          schema[add_props_key] = translate_schema(schema[add_props_key], version)
         end
       end
     end

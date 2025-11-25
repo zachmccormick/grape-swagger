@@ -144,7 +144,7 @@ describe GrapeSwagger::OpenAPI::SpecBuilderV3_1 do
           info: { title: 'Legacy API', version: '1.0.0' },
           host: 'api.example.com',
           base_path: '/v1',
-          schemes: ['https', 'http'],
+          schemes: %w[https http],
           definitions: {
             'User' => { type: 'object' }
           },

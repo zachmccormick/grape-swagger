@@ -35,9 +35,7 @@ module GrapeSwagger
         end
 
         # Translate references if version is provided and it's OpenAPI 3.1.0
-        if version && !version.swagger_2_0?
-          components = translate_component_references(components, version)
-        end
+        components = translate_component_references(components, version) if version && !version.swagger_2_0?
 
         # Only include keys that have values
         components.select { |_key, value| value && !value.empty? }
