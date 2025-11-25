@@ -148,6 +148,13 @@ module Grape
       # Add requestBody and wrap responses for OpenAPI 3.1.0
       version = GrapeSwagger::OpenAPI::VersionSelector.build_spec(options)
       if version.openapi_3_1_0?
+        # Wrap parameters in schema objects for OpenAPI 3.1.0
+        if method[:parameters]
+          method[:parameters] = method[:parameters].map do |param|
+            GrapeSwagger::OpenAPI::ParameterSchemaWrapper.wrap(param, version)
+          end
+        end
+
         # Extract body parameters before removing them from parameters array
         body_params = extract_body_params(method[:parameters])
 
