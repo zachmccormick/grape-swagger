@@ -1,0 +1,284 @@
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+describe GrapeSwagger::OpenAPI::ComponentsBuilder do
+  describe '.build' do
+    context 'with empty components' do
+      it 'returns empty components object' do
+        components = described_class.build({})
+        expect(components).to eq({})
+      end
+    end
+
+    context 'with definitions (legacy)' do
+      it 'moves definitions to components.schemas' do
+        options = {
+          definitions: {
+            'User' => {
+              type: 'object',
+              properties: {
+                id: { type: 'integer' },
+                name: { type: 'string' }
+              }
+            },
+            'Post' => {
+              type: 'object',
+              properties: {
+                title: { type: 'string' }
+              }
+            }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components).to have_key(:schemas)
+        expect(components[:schemas]).to have_key('User')
+        expect(components[:schemas]).to have_key('Post')
+        expect(components[:schemas]['User'][:type]).to eq('object')
+        expect(components[:schemas]['User'][:properties][:name][:type]).to eq('string')
+      end
+
+      it 'does not include definitions key' do
+        options = {
+          definitions: { 'User' => { type: 'object' } }
+        }
+        components = described_class.build(options)
+
+        expect(components).not_to have_key(:definitions)
+      end
+    end
+
+    context 'with components.schemas directly' do
+      it 'uses schemas as-is' do
+        options = {
+          components: {
+            schemas: {
+              'User' => { type: 'object' },
+              'Post' => { type: 'object' }
+            }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:schemas]).to have_key('User')
+        expect(components[:schemas]).to have_key('Post')
+      end
+    end
+
+    context 'with parameters' do
+      it 'includes parameters in components' do
+        options = {
+          components: {
+            parameters: {
+              'PageParam' => {
+                name: 'page',
+                in: 'query',
+                schema: { type: 'integer' }
+              },
+              'LimitParam' => {
+                name: 'limit',
+                in: 'query',
+                schema: { type: 'integer' }
+              }
+            }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:parameters]).to have_key('PageParam')
+        expect(components[:parameters]).to have_key('LimitParam')
+        expect(components[:parameters]['PageParam'][:name]).to eq('page')
+        expect(components[:parameters]['PageParam'][:in]).to eq('query')
+      end
+    end
+
+    context 'with responses' do
+      it 'includes responses in components' do
+        options = {
+          components: {
+            responses: {
+              'NotFound' => {
+                description: 'Resource not found',
+                content: {
+                  'application/json' => {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        error: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              'Unauthorized' => {
+                description: 'Unauthorized access'
+              }
+            }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:responses]).to have_key('NotFound')
+        expect(components[:responses]).to have_key('Unauthorized')
+        expect(components[:responses]['NotFound'][:description]).to eq('Resource not found')
+      end
+    end
+
+    context 'with securitySchemes' do
+      it 'includes security schemes in components' do
+        options = {
+          components: {
+            securitySchemes: {
+              'BearerAuth' => {
+                type: 'http',
+                scheme: 'bearer',
+                bearerFormat: 'JWT'
+              },
+              'ApiKeyAuth' => {
+                type: 'apiKey',
+                in: 'header',
+                name: 'X-API-Key'
+              }
+            }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:securitySchemes]).to have_key('BearerAuth')
+        expect(components[:securitySchemes]).to have_key('ApiKeyAuth')
+        expect(components[:securitySchemes]['BearerAuth'][:type]).to eq('http')
+        expect(components[:securitySchemes]['BearerAuth'][:scheme]).to eq('bearer')
+        expect(components[:securitySchemes]['ApiKeyAuth'][:type]).to eq('apiKey')
+      end
+    end
+
+    context 'with legacy securityDefinitions' do
+      it 'moves securityDefinitions to components.securitySchemes' do
+        options = {
+          securityDefinitions: {
+            'api_key' => {
+              type: 'apiKey',
+              name: 'api_key',
+              in: 'header'
+            }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:securitySchemes]).to have_key('api_key')
+        expect(components[:securitySchemes]['api_key'][:type]).to eq('apiKey')
+        expect(components).not_to have_key(:securityDefinitions)
+      end
+    end
+
+    context 'with all component types' do
+      it 'builds complete components object' do
+        options = {
+          definitions: { 'User' => { type: 'object' } },
+          components: {
+            parameters: { 'PageParam' => { name: 'page' } },
+            responses: { 'NotFound' => { description: 'Not found' } },
+            securitySchemes: { 'BearerAuth' => { type: 'http' } }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components).to have_key(:schemas)
+        expect(components).to have_key(:parameters)
+        expect(components).to have_key(:responses)
+        expect(components).to have_key(:securitySchemes)
+      end
+    end
+
+    context 'with examples' do
+      it 'includes examples in components' do
+        options = {
+          components: {
+            examples: {
+              'UserExample' => {
+                value: {
+                  id: 1,
+                  name: 'John Doe'
+                }
+              }
+            }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:examples]).to have_key('UserExample')
+        expect(components[:examples]['UserExample'][:value][:name]).to eq('John Doe')
+      end
+    end
+
+    context 'with requestBodies' do
+      it 'includes requestBodies in components' do
+        options = {
+          components: {
+            requestBodies: {
+              'UserBody' => {
+                description: 'User object',
+                required: true,
+                content: {
+                  'application/json' => {
+                    schema: { '$ref' => '#/components/schemas/User' }
+                  }
+                }
+              }
+            }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:requestBodies]).to have_key('UserBody')
+        expect(components[:requestBodies]['UserBody'][:required]).to be true
+      end
+    end
+
+    context 'with headers' do
+      it 'includes headers in components' do
+        options = {
+          components: {
+            headers: {
+              'X-Rate-Limit' => {
+                description: 'Rate limit header',
+                schema: { type: 'integer' }
+              }
+            }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:headers]).to have_key('X-Rate-Limit')
+        expect(components[:headers]['X-Rate-Limit'][:description]).to eq('Rate limit header')
+      end
+    end
+
+    context 'precedence of components fields' do
+      it 'prefers components.schemas over definitions' do
+        options = {
+          definitions: { 'User' => { type: 'object', description: 'old' } },
+          components: {
+            schemas: { 'User' => { type: 'object', description: 'new' } }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:schemas]['User'][:description]).to eq('new')
+      end
+
+      it 'prefers components.securitySchemes over securityDefinitions' do
+        options = {
+          securityDefinitions: { 'api_key' => { type: 'apiKey', name: 'old' } },
+          components: {
+            securitySchemes: { 'api_key' => { type: 'apiKey', name: 'new' } }
+          }
+        }
+        components = described_class.build(options)
+
+        expect(components[:securitySchemes]['api_key'][:name]).to eq('new')
+      end
+    end
+  end
+end
