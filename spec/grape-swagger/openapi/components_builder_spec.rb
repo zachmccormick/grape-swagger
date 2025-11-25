@@ -280,5 +280,97 @@ describe GrapeSwagger::OpenAPI::ComponentsBuilder do
         expect(components[:securitySchemes]['api_key'][:name]).to eq('new')
       end
     end
+
+    context 'with version-aware reference translation' do
+      let(:swagger_version) { GrapeSwagger::OpenAPI::Version.new(GrapeSwagger::OpenAPI::VersionConstants::SWAGGER_2_0) }
+      let(:openapi_version) { GrapeSwagger::OpenAPI::Version.new(GrapeSwagger::OpenAPI::VersionConstants::OPENAPI_3_1_0) }
+
+      it 'does not translate references for Swagger 2.0' do
+        options = {
+          definitions: {
+            'User' => {
+              type: 'object',
+              properties: {
+                profile: { '$ref' => '#/definitions/Profile' }
+              }
+            },
+            'Profile' => { type: 'object' }
+          },
+          version: swagger_version
+        }
+        components = described_class.build(options)
+
+        expect(components[:schemas]['User'][:properties][:profile]['$ref']).to eq('#/definitions/Profile')
+      end
+
+      it 'translates references for OpenAPI 3.1.0' do
+        options = {
+          definitions: {
+            'User' => {
+              type: 'object',
+              properties: {
+                profile: { '$ref' => '#/definitions/Profile' }
+              }
+            },
+            'Profile' => { type: 'object' }
+          },
+          version: openapi_version
+        }
+        components = described_class.build(options)
+
+        expect(components[:schemas]['User'][:properties][:profile]['$ref']).to eq('#/components/schemas/Profile')
+      end
+
+      it 'translates nested references for OpenAPI 3.1.0' do
+        options = {
+          definitions: {
+            'User' => {
+              type: 'object',
+              properties: {
+                profile: { '$ref' => '#/definitions/Profile' },
+                account: { '$ref' => '#/definitions/Account' }
+              }
+            }
+          },
+          version: openapi_version
+        }
+        components = described_class.build(options)
+
+        expect(components[:schemas]['User'][:properties][:profile]['$ref']).to eq('#/components/schemas/Profile')
+        expect(components[:schemas]['User'][:properties][:account]['$ref']).to eq('#/components/schemas/Account')
+      end
+
+      it 'translates array item references for OpenAPI 3.1.0' do
+        options = {
+          definitions: {
+            'UserList' => {
+              type: 'array',
+              items: { '$ref' => '#/definitions/User' }
+            }
+          },
+          version: openapi_version
+        }
+        components = described_class.build(options)
+
+        expect(components[:schemas]['UserList'][:items]['$ref']).to eq('#/components/schemas/User')
+      end
+
+      it 'translates allOf references for OpenAPI 3.1.0' do
+        options = {
+          definitions: {
+            'ExtendedUser' => {
+              allOf: [
+                { '$ref' => '#/definitions/BaseUser' },
+                { type: 'object', properties: { extended: { type: 'boolean' } } }
+              ]
+            }
+          },
+          version: openapi_version
+        }
+        components = described_class.build(options)
+
+        expect(components[:schemas]['ExtendedUser'][:allOf][0]['$ref']).to eq('#/components/schemas/BaseUser')
+      end
+    end
   end
 end
