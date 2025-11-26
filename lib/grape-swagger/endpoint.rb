@@ -38,18 +38,27 @@ module Grape
           paths: {},
           tags: [],
           security: options[:security],
-          externalDocs: options[:external_docs]
+          externalDocs: options[:external_docs],
+          securityDefinitions: options[:security_definitions],
+          version: version
         )
       end
 
       # For Swagger 2.0, use the standard swagger object
+      # Transform security definitions for Swagger 2.0
+      security_defs = if options[:security_definitions]
+                        transform_security_definitions(options[:security_definitions], version)
+                      else
+                        options[:security_definitions]
+                      end
+
       object = {
         info: info_object(options[:info].merge(version: options[:doc_version])),
         swagger: '2.0',
         produces: options[:produces] || content_types_for(target_class),
         consumes: options[:consumes],
         authorizations: options[:authorizations],
-        securityDefinitions: options[:security_definitions],
+        securityDefinitions: security_defs,
         security: options[:security],
         host: GrapeSwagger::DocMethods::OptionalObject.build(:host, options, request),
         basePath: GrapeSwagger::DocMethods::OptionalObject.build(:base_path, options, request),
@@ -92,6 +101,19 @@ module Grape
         email: infos.delete(:contact_email),
         url: infos.delete(:contact_url)
       }.delete_if { |_, value| value.blank? }
+    end
+
+    # Transform security definitions using SecuritySchemeBuilder
+    def transform_security_definitions(security_definitions, version)
+      return nil unless security_definitions.is_a?(Hash)
+
+      transformed = {}
+      security_definitions.each do |scheme_name, scheme_config|
+        result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(scheme_config, version)
+        # Only include the scheme if it's not nil (some schemes aren't supported in Swagger 2.0)
+        transformed[scheme_name] = result if result
+      end
+      transformed.empty? ? nil : transformed
     end
 
     # building path and definitions objects

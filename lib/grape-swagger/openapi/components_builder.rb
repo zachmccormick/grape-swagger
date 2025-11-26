@@ -34,11 +34,28 @@ module GrapeSwagger
           components[:securitySchemes] = options[:securityDefinitions].dup
         end
 
+        # Transform security schemes if version is provided
+        if version && components[:securitySchemes]
+          components[:securitySchemes] = transform_security_schemes(components[:securitySchemes], version)
+        end
+
         # Translate references if version is provided and it's OpenAPI 3.1.0
         components = translate_component_references(components, version) if version && !version.swagger_2_0?
 
         # Only include keys that have values
         components.select { |_key, value| value && !value.empty? }
+      end
+
+      def self.transform_security_schemes(security_schemes, version)
+        return security_schemes unless security_schemes.is_a?(Hash)
+
+        transformed = {}
+        security_schemes.each do |scheme_name, scheme_config|
+          result = SecuritySchemeBuilder.build(scheme_config, version)
+          # Only include the scheme if it's not nil (some schemes aren't supported in Swagger 2.0)
+          transformed[scheme_name] = result if result
+        end
+        transformed
       end
 
       def self.translate_component_references(components, version)

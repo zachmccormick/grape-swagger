@@ -281,6 +281,119 @@ describe GrapeSwagger::OpenAPI::ComponentsBuilder do
       end
     end
 
+    context 'with security scheme transformation' do
+      let(:swagger_version) { GrapeSwagger::OpenAPI::Version.new(GrapeSwagger::OpenAPI::VersionConstants::SWAGGER_2_0) }
+      let(:openapi_version) { GrapeSwagger::OpenAPI::Version.new(GrapeSwagger::OpenAPI::VersionConstants::OPENAPI_3_1_0) }
+
+      it 'transforms OAuth2 security schemes for OpenAPI 3.1.0' do
+        options = {
+          securityDefinitions: {
+            'oauth2' => {
+              type: 'oauth2',
+              flows: {
+                authorizationCode: {
+                  authorization_url: 'https://auth.example.com/authorize',
+                  token_url: 'https://auth.example.com/token',
+                  scopes: { 'read' => 'Read access' }
+                }
+              }
+            }
+          },
+          version: openapi_version
+        }
+        components = described_class.build(options)
+
+        expect(components[:securitySchemes]['oauth2'][:type]).to eq('oauth2')
+        expect(components[:securitySchemes]['oauth2'][:flows][:authorizationCode]).to be_a(Hash)
+        expect(components[:securitySchemes]['oauth2'][:flows][:authorizationCode][:authorizationUrl]).to eq('https://auth.example.com/authorize')
+        expect(components[:securitySchemes]['oauth2'][:flows][:authorizationCode][:tokenUrl]).to eq('https://auth.example.com/token')
+      end
+
+      it 'transforms OpenID Connect security schemes for OpenAPI 3.1.0' do
+        options = {
+          securityDefinitions: {
+            'openId' => {
+              type: 'openIdConnect',
+              openid_connect_url: 'https://auth.example.com/.well-known/openid-configuration'
+            }
+          },
+          version: openapi_version
+        }
+        components = described_class.build(options)
+
+        expect(components[:securitySchemes]['openId'][:type]).to eq('openIdConnect')
+        expect(components[:securitySchemes]['openId'][:openIdConnectUrl]).to eq('https://auth.example.com/.well-known/openid-configuration')
+      end
+
+      it 'transforms Mutual TLS security schemes for OpenAPI 3.1.0' do
+        options = {
+          securityDefinitions: {
+            'mtls' => {
+              type: 'mutualTLS',
+              description: 'Client certificate required'
+            }
+          },
+          version: openapi_version
+        }
+        components = described_class.build(options)
+
+        expect(components[:securitySchemes]['mtls'][:type]).to eq('mutualTLS')
+        expect(components[:securitySchemes]['mtls'][:description]).to eq('Client certificate required')
+      end
+
+      it 'converts OAuth2 to Swagger 2.0 format' do
+        options = {
+          securityDefinitions: {
+            'oauth2' => {
+              type: 'oauth2',
+              flows: {
+                authorizationCode: {
+                  authorization_url: 'https://auth.example.com/authorize',
+                  token_url: 'https://auth.example.com/token',
+                  scopes: { 'read' => 'Read access' }
+                }
+              }
+            }
+          },
+          version: swagger_version
+        }
+        components = described_class.build(options)
+
+        expect(components[:securitySchemes]['oauth2'][:type]).to eq('oauth2')
+        expect(components[:securitySchemes]['oauth2'][:flow]).to eq('accessCode')
+        expect(components[:securitySchemes]['oauth2'][:authorizationUrl]).to eq('https://auth.example.com/authorize')
+        expect(components[:securitySchemes]['oauth2'][:tokenUrl]).to eq('https://auth.example.com/token')
+        expect(components[:securitySchemes]['oauth2'][:flows]).to be_nil
+      end
+
+      it 'filters out unsupported security schemes for Swagger 2.0' do
+        options = {
+          securityDefinitions: {
+            'openId' => {
+              type: 'openIdConnect',
+              openid_connect_url: 'https://auth.example.com/.well-known/openid-configuration'
+            },
+            'mtls' => {
+              type: 'mutualTLS'
+            },
+            'api_key' => {
+              type: 'apiKey',
+              name: 'X-API-Key',
+              in: 'header'
+            }
+          },
+          version: swagger_version
+        }
+        components = described_class.build(options)
+
+        # openId and mtls should be filtered out for Swagger 2.0
+        expect(components[:securitySchemes].key?('openId')).to be(false)
+        expect(components[:securitySchemes].key?('mtls')).to be(false)
+        # api_key should remain
+        expect(components[:securitySchemes].key?('api_key')).to be(true)
+      end
+    end
+
     context 'with version-aware reference translation' do
       let(:swagger_version) { GrapeSwagger::OpenAPI::Version.new(GrapeSwagger::OpenAPI::VersionConstants::SWAGGER_2_0) }
       let(:openapi_version) { GrapeSwagger::OpenAPI::Version.new(GrapeSwagger::OpenAPI::VersionConstants::OPENAPI_3_1_0) }
