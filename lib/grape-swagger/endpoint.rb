@@ -183,6 +183,22 @@ module Grape
             )
           end
         end
+
+        # Add callbacks if present in route options
+        if route.options[:callbacks]
+          callbacks = GrapeSwagger::OpenAPI::CallbackBuilder.build(route.options[:callbacks], version)
+          method[:callbacks] = callbacks if callbacks
+        end
+
+        # Add links to responses if present in route options
+        route.options[:links]&.each do |status_code, links_for_status|
+          # Check both integer and string keys for the status code
+          response_key = method[:responses]&.key?(status_code) ? status_code : status_code.to_s
+          next unless method[:responses] && method[:responses][response_key]
+
+          built_links = GrapeSwagger::OpenAPI::LinkBuilder.build(links_for_status, version)
+          method[:responses][response_key][:links] = built_links if built_links
+        end
       end
 
       method.delete_if { |_, value| value.nil? }
