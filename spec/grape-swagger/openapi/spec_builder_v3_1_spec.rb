@@ -224,23 +224,18 @@ describe GrapeSwagger::OpenAPI::SpecBuilderV3_1 do
     end
 
     context 'with webhooks (OpenAPI 3.1.0 feature)' do
-      it 'includes webhooks object' do
+      it 'includes webhooks object built from webhook definitions' do
         options = {
           info: { title: 'Test API' },
           webhooks: {
-            'newUser' => {
-              post: {
-                summary: 'New user webhook',
-                requestBody: {
-                  content: {
-                    'application/json' => {
-                      schema: { '$ref' => '#/components/schemas/User' }
-                    }
-                  }
-                },
-                responses: {
-                  '200' => { description: 'Webhook received' }
-                }
+            user_signup: {
+              summary: 'User signup event',
+              description: 'Triggered when a new user registers',
+              request: {
+                schema: { '$ref' => '#/components/schemas/User' }
+              },
+              responses: {
+                200 => { description: 'Webhook received' }
               }
             }
           }
@@ -248,7 +243,79 @@ describe GrapeSwagger::OpenAPI::SpecBuilderV3_1 do
         spec = described_class.build(options)
 
         expect(spec[:webhooks]).to be_a(Hash)
-        expect(spec[:webhooks]).to have_key('newUser')
+        expect(spec[:webhooks]).to have_key('user_signup')
+        expect(spec[:webhooks]['user_signup']).to have_key(:post)
+        expect(spec[:webhooks]['user_signup'][:post][:summary]).to eq('User signup event')
+      end
+
+      it 'builds webhooks with requestBody and responses' do
+        options = {
+          info: { title: 'Test API' },
+          webhooks: {
+            order_created: {
+              request: {
+                description: 'Order details',
+                schema: { type: 'object' }
+              },
+              responses: {
+                200 => { description: 'Success' },
+                400 => { description: 'Invalid payload' }
+              }
+            }
+          }
+        }
+        spec = described_class.build(options)
+
+        webhook = spec[:webhooks]['order_created'][:post]
+        expect(webhook[:requestBody]).to have_key(:content)
+        expect(webhook[:requestBody][:content]).to have_key('application/json')
+        expect(webhook[:responses]).to have_key('200')
+        expect(webhook[:responses]).to have_key('400')
+      end
+
+      it 'omits webhooks when not provided' do
+        options = {
+          info: { title: 'Test API' }
+        }
+        spec = described_class.build(options)
+
+        expect(spec).not_to have_key(:webhooks)
+      end
+
+      it 'omits webhooks when empty' do
+        options = {
+          info: { title: 'Test API' },
+          webhooks: {}
+        }
+        spec = described_class.build(options)
+
+        expect(spec).not_to have_key(:webhooks)
+      end
+
+      it 'supports multiple webhooks' do
+        options = {
+          info: { title: 'Test API' },
+          webhooks: {
+            user_signup: {
+              request: { schema: { type: 'object' } },
+              responses: { 200 => { description: 'OK' } }
+            },
+            order_created: {
+              request: { schema: { type: 'object' } },
+              responses: { 200 => { description: 'OK' } }
+            },
+            payment_received: {
+              request: { schema: { type: 'object' } },
+              responses: { 200 => { description: 'OK' } }
+            }
+          }
+        }
+        spec = described_class.build(options)
+
+        expect(spec[:webhooks].keys.size).to eq(3)
+        expect(spec[:webhooks]).to have_key('user_signup')
+        expect(spec[:webhooks]).to have_key('order_created')
+        expect(spec[:webhooks]).to have_key('payment_received')
       end
     end
 
