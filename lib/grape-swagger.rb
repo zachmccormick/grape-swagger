@@ -37,6 +37,9 @@ require 'grape-swagger/openapi/callback_builder'
 require 'grape-swagger/openapi/link_builder'
 require 'grape-swagger/openapi/discriminator_builder'
 require 'grape-swagger/openapi/polymorphic_schema_builder'
+require 'grape-swagger/openapi/reference_cache'
+require 'grape-swagger/openapi/lazy_component_builder'
+require 'grape-swagger/openapi/benchmark_suite'
 require 'grape-swagger/openapi/spec_builder_v3_1'
 
 module GrapeSwagger
