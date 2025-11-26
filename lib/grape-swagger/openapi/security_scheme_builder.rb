@@ -23,8 +23,6 @@ module GrapeSwagger
         end
       end
 
-      private
-
       def self.build_openapi_3_1(config)
         case config[:type]
         when 'oauth2'

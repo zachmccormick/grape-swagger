@@ -31,9 +31,7 @@ module GrapeSwagger
             propertyName: config[:property_name]
           }
 
-          if config[:mapping]
-            result[:mapping] = build_mapping(config[:mapping])
-          end
+          result[:mapping] = build_mapping(config[:mapping]) if config[:mapping]
 
           result
         end
