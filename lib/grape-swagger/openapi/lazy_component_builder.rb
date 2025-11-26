@@ -9,6 +9,8 @@ module GrapeSwagger
     # improves initial generation time for large APIs where not all
     # components may be referenced.
     #
+    # @note This class is NOT thread-safe. Use in single-threaded context only.
+    #
     # @example Basic usage
     #   builder = LazyComponentBuilder.new(version)
     #   builder.register('User') { { type: 'object', properties: { name: { type: 'string' } } } }

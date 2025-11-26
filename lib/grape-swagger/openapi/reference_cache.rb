@@ -83,7 +83,7 @@ module GrapeSwagger
       def evict_if_full
         return unless @cache.size >= @max_size
 
-        # LRU-style eviction - remove oldest entries
+        # FIFO eviction - remove oldest inserted entries
         keys_to_remove = @cache.keys.first(@cache.size - @max_size + 1)
         keys_to_remove.each { |k| @cache.delete(k) }
       end

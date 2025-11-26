@@ -51,13 +51,16 @@ module GrapeSwagger
         before = ObjectSpace.count_objects[:T_OBJECT] + ObjectSpace.count_objects[:T_HASH] +
                  ObjectSpace.count_objects[:T_ARRAY] + ObjectSpace.count_objects[:T_STRING]
 
-        block.call
+        begin
+          block.call
 
-        after = ObjectSpace.count_objects[:T_OBJECT] + ObjectSpace.count_objects[:T_HASH] +
-                ObjectSpace.count_objects[:T_ARRAY] + ObjectSpace.count_objects[:T_STRING]
+          after = ObjectSpace.count_objects[:T_OBJECT] + ObjectSpace.count_objects[:T_HASH] +
+                  ObjectSpace.count_objects[:T_ARRAY] + ObjectSpace.count_objects[:T_STRING]
 
-        GC.enable
-        [after - before, 0].max
+          [after - before, 0].max
+        ensure
+          GC.enable
+        end
       end
 
       # Runs a complete benchmark
@@ -100,14 +103,14 @@ module GrapeSwagger
         baseline_memory = [baseline[:memory_usage].to_f, 1].max
         current_memory = current[:memory_usage].to_f
 
-        time_change = ((current_time - baseline_time) / baseline_time * 100).round(1)
-        memory_change = ((current_memory - baseline_memory) / baseline_memory * 100).round(1)
+        time_change = calculate_percent_change(baseline_time, current_time)
+        memory_change = calculate_percent_change(baseline_memory, current_memory)
 
         {
           time_change_percent: time_change,
           memory_change_percent: memory_change,
-          regression: time_change > (REGRESSION_THRESHOLD * 100) ||
-            memory_change > (REGRESSION_THRESHOLD * 100)
+          regression: (time_change.is_a?(Float) && time_change > (REGRESSION_THRESHOLD * 100)) ||
+            (memory_change.is_a?(Float) && memory_change > (REGRESSION_THRESHOLD * 100))
         }
       end
 
@@ -137,6 +140,13 @@ module GrapeSwagger
           `ps -o rss= -p #{Process.pid}`.to_i * 1024
         rescue StandardError
           0
+        end
+
+        def calculate_percent_change(baseline, current)
+          return Float::INFINITY if baseline.zero? && current.positive?
+          return 0.0 if baseline.zero?
+
+          ((current - baseline) / baseline * 100).round(1)
         end
 
         def calculate_median(array)
