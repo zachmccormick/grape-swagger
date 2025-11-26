@@ -65,11 +65,20 @@ module GrapeSwagger
 
       # Runs a complete benchmark
       #
-      # @param iterations [Integer] Number of iterations to run
+      # @param iterations [Integer] Number of iterations to run (0 returns empty results)
       # @param warmup [Boolean] Whether to run a warmup iteration
       # @yield Block to benchmark
       # @return [Hash] Benchmark results
       def self.run_benchmark(iterations: 10, warmup: true, &block)
+        # Handle zero iterations gracefully
+        if iterations.zero?
+          return {
+            generation_time: { min: 0.0, max: 0.0, avg: 0.0, median: 0.0 },
+            memory_usage: 0,
+            object_allocations: 0
+          }
+        end
+
         # Warm up (doesn't count toward iterations)
         block.call if warmup
 
@@ -84,7 +93,7 @@ module GrapeSwagger
           generation_time: {
             min: times.min,
             max: times.max,
-            avg: times.sum / times.size,
+            avg: times.sum / times.size.to_f,
             median: calculate_median(times)
           },
           memory_usage: memory,

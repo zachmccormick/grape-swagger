@@ -19,10 +19,11 @@ module GrapeSwagger
     class NullableTypeHandler
       # Transforms nullable: true to type arrays for OpenAPI 3.1.0
       #
-      # @param schema [Hash] The schema to transform
+      # @param schema [Hash, nil] The schema to transform
       # @param version [GrapeSwagger::OpenAPI::Version] The version object
-      # @return [Hash] Transformed schema
+      # @return [Hash, nil] Transformed schema, or nil if input was nil
       def self.transform(schema, version)
+        return nil if schema.nil?
         return schema unless version.openapi_3_1_0?
         return schema if schema[:nullable].nil?
 
@@ -33,9 +34,7 @@ module GrapeSwagger
         return result unless nullable
 
         # If there's a type, make it an array with 'null'
-        if result[:type]
-          result[:type] = normalize_type_array(result[:type])
-        end
+        result[:type] = normalize_type_array(result[:type]) if result[:type]
 
         result
       end
