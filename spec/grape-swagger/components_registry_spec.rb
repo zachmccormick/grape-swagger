@@ -146,4 +146,150 @@ describe GrapeSwagger::ComponentsRegistry do
       end
     end
   end
+
+  describe '.to_openapi' do
+    it 'builds components hash from registered classes' do
+      param_class = Class.new do
+        def self.name
+          'PageParam'
+        end
+
+        def self.component_name
+          nil
+        end
+
+        def self.to_openapi
+          { name: 'page', in: 'query', schema: { type: 'integer' } }
+        end
+      end
+
+      response_class = Class.new do
+        def self.name
+          'NotFoundResponse'
+        end
+
+        def self.component_name
+          nil
+        end
+
+        def self.to_openapi
+          { description: 'Resource not found' }
+        end
+      end
+
+      described_class.register_parameter(param_class)
+      described_class.register_response(response_class)
+
+      result = described_class.to_openapi
+
+      expect(result[:parameters]).to have_key('PageParam')
+      expect(result[:parameters]['PageParam'][:name]).to eq('page')
+      expect(result[:responses]).to have_key('NotFoundResponse')
+      expect(result[:responses]['NotFoundResponse'][:description]).to eq('Resource not found')
+    end
+
+    it 'returns empty hash sections when no components registered' do
+      result = described_class.to_openapi
+
+      expect(result).to eq({})
+    end
+  end
+
+  describe '.find_parameter!' do
+    it 'returns the registered parameter class' do
+      mock_class = Class.new do
+        def self.name
+          'PageParam'
+        end
+
+        def self.component_name
+          nil
+        end
+      end
+
+      described_class.register_parameter(mock_class)
+
+      expect(described_class.find_parameter!('PageParam')).to eq(mock_class)
+    end
+
+    it 'raises ComponentNotFoundError for missing parameter' do
+      expect { described_class.find_parameter!('NonExistent') }
+        .to raise_error(GrapeSwagger::ComponentNotFoundError, /not found/)
+    end
+  end
+
+  describe '.find_response!' do
+    it 'returns the registered response class' do
+      mock_class = Class.new do
+        def self.name
+          'NotFoundResponse'
+        end
+
+        def self.component_name
+          nil
+        end
+      end
+
+      described_class.register_response(mock_class)
+
+      expect(described_class.find_response!('NotFoundResponse')).to eq(mock_class)
+    end
+
+    it 'raises ComponentNotFoundError for missing response' do
+      expect { described_class.find_response!('NonExistent') }
+        .to raise_error(GrapeSwagger::ComponentNotFoundError, /not found/)
+    end
+  end
+
+  describe '.find_header!' do
+    it 'returns the registered header class' do
+      mock_class = Class.new do
+        def self.name
+          'RateLimitHeader'
+        end
+
+        def self.component_name
+          nil
+        end
+      end
+
+      described_class.register_header(mock_class)
+
+      expect(described_class.find_header!('RateLimitHeader')).to eq(mock_class)
+    end
+
+    it 'raises ComponentNotFoundError for missing header' do
+      expect { described_class.find_header!('NonExistent') }
+        .to raise_error(GrapeSwagger::ComponentNotFoundError, /not found/)
+    end
+  end
+
+  describe 'collision warnings' do
+    it 'warns when registering duplicate component name' do
+      class1 = Class.new do
+        def self.name
+          'Api::V1::PageParam'
+        end
+
+        def self.component_name
+          nil
+        end
+      end
+
+      class2 = Class.new do
+        def self.name
+          'Api::V2::PageParam'
+        end
+
+        def self.component_name
+          nil
+        end
+      end
+
+      described_class.register_parameter(class1)
+
+      expect { described_class.register_parameter(class2) }
+        .to output(/collision.*PageParam/i).to_stderr
+    end
+  end
 end
