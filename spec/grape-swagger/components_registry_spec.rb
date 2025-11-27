@@ -7,6 +7,10 @@ describe GrapeSwagger::ComponentsRegistry do
     described_class.reset!
   end
 
+  after(:each) do
+    described_class.reset!
+  end
+
   describe '.register_parameter' do
     it 'registers a parameter class by name' do
       mock_class = Class.new do

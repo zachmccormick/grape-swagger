@@ -19,8 +19,22 @@ module GrapeSwagger
         components = {}
         version = options[:version]
 
-        # Start with explicit components if provided
-        components = options[:components].dup if options[:components]
+        # Start with auto-registered reusable components
+        registered = GrapeSwagger::ComponentsRegistry.to_openapi
+        registered.each do |key, value|
+          components[key] = value.dup if value && !value.empty?
+        end
+
+        # Merge explicit components (takes precedence)
+        if options[:components]
+          options[:components].each do |key, value|
+            if components[key]
+              components[key] = components[key].merge(value)
+            else
+              components[key] = value.dup
+            end
+          end
+        end
 
         # Handle legacy definitions -> schemas
         if options[:definitions] && !components[:schemas]

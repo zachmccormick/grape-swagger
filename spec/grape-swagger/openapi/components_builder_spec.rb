@@ -3,9 +3,15 @@
 require 'spec_helper'
 
 describe GrapeSwagger::OpenAPI::ComponentsBuilder do
+  # Reset registry before all tests to ensure clean state
+  before(:all) do
+    GrapeSwagger::ComponentsRegistry.reset!
+  end
+
   describe '.build' do
     context 'with empty components' do
       it 'returns empty components object' do
+        GrapeSwagger::ComponentsRegistry.reset!
         components = described_class.build({})
         expect(components).to eq({})
       end
@@ -484,6 +490,92 @@ describe GrapeSwagger::OpenAPI::ComponentsBuilder do
 
         expect(components[:schemas]['ExtendedUser'][:allOf][0]['$ref']).to eq('#/components/schemas/BaseUser')
       end
+    end
+  end
+
+  context 'with auto-registered reusable components' do
+    before(:all) do
+      # Define test components as constants so they auto-register
+      class BuilderTestPageParam < GrapeSwagger::ReusableParameter
+        component_name 'BuilderTestPageParam'
+        name 'page'
+        in_query
+        schema type: 'integer', default: 1
+        description 'Page number'
+      end
+
+      class BuilderTestNotFound < GrapeSwagger::ReusableResponse
+        component_name 'BuilderTestNotFound'
+        description 'Not found'
+        json_schema({ type: 'object' })
+      end
+
+      class BuilderTestRateLimit < GrapeSwagger::ReusableHeader
+        component_name 'BuilderTestRateLimit'
+        description 'Rate limit remaining'
+        schema type: 'integer'
+      end
+
+      class PrecedenceTestParam < GrapeSwagger::ReusableParameter
+        component_name 'PrecedenceTestParam'
+        name 'page'
+        in_query
+        schema type: 'integer'
+        description 'Auto description'
+      end
+    end
+
+    before(:each) do
+      GrapeSwagger::ComponentsRegistry.reset!
+      # Re-register for each test
+      GrapeSwagger::ComponentsRegistry.register_parameter(BuilderTestPageParam)
+      GrapeSwagger::ComponentsRegistry.register_response(BuilderTestNotFound)
+      GrapeSwagger::ComponentsRegistry.register_header(BuilderTestRateLimit)
+      GrapeSwagger::ComponentsRegistry.register_parameter(PrecedenceTestParam)
+    end
+
+    after(:each) do
+      GrapeSwagger::ComponentsRegistry.reset!
+    end
+
+    it 'merges auto-registered parameters into components' do
+      components = described_class.build({})
+
+      expect(components[:parameters]).to have_key('BuilderTestPageParam')
+      expect(components[:parameters]['BuilderTestPageParam'][:name]).to eq('page')
+    end
+
+    it 'merges auto-registered responses into components' do
+      components = described_class.build({})
+
+      expect(components[:responses]).to have_key('BuilderTestNotFound')
+      expect(components[:responses]['BuilderTestNotFound'][:description]).to eq('Not found')
+    end
+
+    it 'merges auto-registered headers into components' do
+      components = described_class.build({})
+
+      expect(components[:headers]).to have_key('BuilderTestRateLimit')
+    end
+
+    it 'manual components take precedence over auto-registered' do
+      # Manual override
+      options = {
+        components: {
+          parameters: {
+            'PrecedenceTestParam' => {
+              name: 'page',
+              in: 'query',
+              schema: { type: 'integer' },
+              description: 'Manual description'
+            }
+          }
+        }
+      }
+
+      components = described_class.build(options)
+
+      expect(components[:parameters]['PrecedenceTestParam'][:description]).to eq('Manual description')
     end
   end
 end
