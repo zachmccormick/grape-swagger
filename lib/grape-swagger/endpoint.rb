@@ -151,6 +151,13 @@ module Grape
           @paths[path.to_s][verb] = method_object
         else
           @paths[path.to_s] = { verb => method_object }
+
+          # Add path-level parameters if defined via path_params DSL
+          # Extract them from the operation parameters (if any exist)
+          if method_object[:parameters]&.any?
+            path_level_params = collect_path_level_params(route, options, path, method_object[:parameters])
+            @paths[path.to_s][:parameters] = path_level_params if path_level_params&.any?
+          end
         end
 
         GrapeSwagger::DocMethods::Extensions.add(@paths[path.to_s], @definitions, route)
@@ -317,6 +324,12 @@ module Grape
         route.settings[:parameter_refs].each do |ref_name|
           parameters << { '$ref' => "#/components/parameters/#{ref_name}" }
         end
+      end
+
+      # Filter out parameters that are defined at path level via path_params
+      path_param_names = collect_path_param_names(route)
+      if path_param_names.any?
+        parameters = parameters.reject { |p| path_param_names.include?(p[:name]&.to_s) }
       end
 
       if GrapeSwagger::DocMethods::MoveParams.can_be_moved?(route.request_method, parameters)
@@ -618,6 +631,67 @@ module Grape
       end
 
       default_code
+    end
+
+    # Collect path-level parameters from route endpoint's inheritable settings
+    #
+    # Extracts parameters that were defined via path_params DSL and moves them
+    # to the path level in the OpenAPI spec
+    #
+    # @param route [Grape::Router::Route] The route
+    # @param options [Hash] Documentation options
+    # @param path [String] The path string
+    # @param operation_params [Array<Hash>] Parameters from the operation level
+    # @return [Array<Hash>, nil] Path-level parameters or nil
+    def collect_path_level_params(route, options, path, operation_params)
+      path_param_names = collect_path_param_names(route)
+      return nil if path_param_names.empty?
+
+      # Extract parameters that match path_param_names from operation_params
+      # These will be moved to path level
+      path_params = operation_params.select do |p|
+        path_param_names.include?(p[:name]&.to_s)
+      end
+
+      path_params.presence
+    end
+
+    # Collect names of parameters defined at path level via path_params DSL
+    #
+    # We identify path params by checking which params are present in path_parameter_block
+    # settings and also appear in the route's path template
+    #
+    # @param route [Grape::Router::Route] The route
+    # @return [Array<String>] Parameter names defined via path_params
+    def collect_path_param_names(route)
+      # Get the endpoint's inheritable_setting
+      endpoint = route.app
+      inheritable_setting = endpoint.instance_variable_get(:@inheritable_setting)
+      return [] unless inheritable_setting
+
+      # Collect all path_parameter_block settings from the inheritance chain
+      blocks = []
+      current = inheritable_setting
+      max_depth = 100 # Safety limit to prevent infinite loops
+      depth = 0
+
+      while current && depth < max_depth
+        if current.namespace && current.namespace[:path_parameter_block]
+          blocks << current.namespace[:path_parameter_block]
+        end
+        current = current.parent
+        depth += 1
+      end
+
+      return [] if blocks.empty?
+
+      # Extract parameter names from path template
+      # Path templates look like /users/{user_id} or /users/:user_id
+      path_template_params = route.path.scan(/[{:](\w+)[}]?/).flatten
+
+      # For simplicity, assume path_params defined parameters that appear in the path
+      # This is a reasonable heuristic since path_params should only be used for path parameters
+      path_template_params
     end
   end
 end

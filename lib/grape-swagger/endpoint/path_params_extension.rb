@@ -19,16 +19,16 @@ module GrapeSwagger
       #   end
       #
       def path_params(&block)
-        # Store for OpenAPI generation
-        namespace_setting :path_parameters, block
+        # Store the block for later doc generation
+        namespace_setting :path_parameter_block, block
 
-        # Also apply to Grape params for runtime validation
+        # Apply to Grape params for runtime validation
         params(&block)
       end
     end
   end
 end
 
-# Extend Grape::API::Instance with the path_params DSL
+# Extend Grape::API with the path_params DSL
 # This makes it available in namespace contexts
-Grape::API::Instance.extend(GrapeSwagger::Endpoint::PathParamsExtension)
+Grape::API.extend(GrapeSwagger::Endpoint::PathParamsExtension)
