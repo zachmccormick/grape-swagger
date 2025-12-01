@@ -17,6 +17,14 @@ module GrapeSwagger
         @headers ||= {}
       end
 
+      def examples
+        @examples ||= {}
+      end
+
+      def request_bodies
+        @request_bodies ||= {}
+      end
+
       def register_parameter(klass)
         name = component_name_for(klass)
         warn_collision(:parameters, name, klass)
@@ -33,6 +41,18 @@ module GrapeSwagger
         name = component_name_for(klass)
         warn_collision(:headers, name, klass)
         headers[name] = klass
+      end
+
+      def register_example(klass)
+        name = component_name_for(klass)
+        warn_collision(:examples, name, klass)
+        examples[name] = klass
+      end
+
+      def register_request_body(klass)
+        name = component_name_for(klass)
+        warn_collision(:request_bodies, name, klass)
+        request_bodies[name] = klass
       end
 
       def find_parameter!(name)
@@ -53,6 +73,20 @@ module GrapeSwagger
         headers[name.to_s] || raise(
           ComponentNotFoundError,
           "Header component '#{name}' not found. Available: #{headers.keys.join(', ')}"
+        )
+      end
+
+      def find_example!(name)
+        examples[name.to_s] || raise(
+          ComponentNotFoundError,
+          "Example component '#{name}' not found. Available: #{examples.keys.join(', ')}"
+        )
+      end
+
+      def find_request_body!(name)
+        request_bodies[name.to_s] || raise(
+          ComponentNotFoundError,
+          "RequestBody component '#{name}' not found. Available: #{request_bodies.keys.join(', ')}"
         )
       end
 
@@ -82,6 +116,10 @@ module GrapeSwagger
 
         result[:headers] = headers.transform_values(&:to_openapi) unless headers.empty?
 
+        result[:examples] = examples.transform_values(&:to_openapi) unless examples.empty?
+
+        result[:requestBodies] = request_bodies.transform_values(&:to_openapi) unless request_bodies.empty?
+
         result
       end
 
@@ -89,6 +127,8 @@ module GrapeSwagger
         @parameters = {}
         @responses = {}
         @headers = {}
+        @examples = {}
+        @request_bodies = {}
       end
 
       private
