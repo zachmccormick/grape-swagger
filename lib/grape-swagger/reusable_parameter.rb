@@ -8,7 +8,13 @@ module GrapeSwagger
         # Defer registration to allow DSL to execute
         TracePoint.new(:end) do |tp|
           if tp.self == subclass
-            GrapeSwagger::ComponentsRegistry.register_parameter(subclass)
+            # Skip auto-registration for anonymous classes (will be registered manually after const_set)
+            begin
+              GrapeSwagger::ComponentsRegistry.register_parameter(subclass)
+            rescue ArgumentError => e
+              # Silently skip if we can't determine the name yet
+              # This happens with Class.new before const_set
+            end
             tp.disable
           end
         end.enable

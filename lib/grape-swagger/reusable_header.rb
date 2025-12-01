@@ -9,7 +9,13 @@ module GrapeSwagger
         # Use :b_return to catch Class.new blocks, :end to catch class definitions
         TracePoint.new(:end, :b_return) do |tp|
           if tp.self == subclass
-            GrapeSwagger::ComponentsRegistry.register_header(subclass)
+            # Skip auto-registration for anonymous classes (will be registered manually after const_set)
+            begin
+              GrapeSwagger::ComponentsRegistry.register_header(subclass)
+            rescue ArgumentError => e
+              # Silently skip if we can't determine the name yet
+              # This happens with Class.new before const_set
+            end
             tp.disable
           end
         end.enable
