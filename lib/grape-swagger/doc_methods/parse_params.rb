@@ -33,6 +33,7 @@ module GrapeSwagger
           document_range_values(settings) unless value_type[:is_array]
           document_required(settings)
           document_length_limits(value_type)
+          document_numeric_validation(value_type)
           document_additional_properties(definitions, settings) unless value_type[:is_array]
           document_add_extensions(settings)
           document_example(settings)
@@ -193,6 +194,12 @@ module GrapeSwagger
             @parsed_param[:minLength] = value_type[:min_length] if value_type.key?(:min_length)
             @parsed_param[:maxLength] = value_type[:max_length] if value_type.key?(:max_length)
           end
+        end
+
+        def document_numeric_validation(value_type)
+          @parsed_param[:exclusiveMinimum] = value_type[:exclusive_minimum] if value_type.key?(:exclusive_minimum)
+          @parsed_param[:exclusiveMaximum] = value_type[:exclusive_maximum] if value_type.key?(:exclusive_maximum)
+          @parsed_param[:multipleOf] = value_type[:multiple_of] if value_type.key?(:multiple_of)
         end
 
         def parse_enum_or_range_values(values)

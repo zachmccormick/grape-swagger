@@ -168,4 +168,50 @@ describe 'Schema Validation Keywords' do
       expect(prop['uniqueItems']).to eq(true)
     end
   end
+
+  describe 'numeric validation documentation keys' do
+    before :all do
+      module TheApi
+        class NumericValidationApi < Grape::API
+          format :json
+
+          desc 'Get ratings with numeric validation'
+          params do
+            optional :rating, type: Float, documentation: {
+              exclusive_minimum: 0,
+              exclusive_maximum: 5,
+              multiple_of: 0.5
+            }
+          end
+          get '/ratings' do
+            { rating: params[:rating] }
+          end
+
+          add_swagger_documentation(
+            openapi_version: '3.1.0',
+            doc_version: '1.0.0',
+            info: { title: 'Numeric Validation API' }
+          )
+        end
+      end
+    end
+
+    def app
+      TheApi::NumericValidationApi
+    end
+
+    subject do
+      get '/swagger_doc'
+      JSON.parse(last_response.body)
+    end
+
+    it 'generates exclusiveMinimum, exclusiveMaximum, and multipleOf' do
+      param = subject['paths']['/ratings']['get']['parameters'].find { |p| p['name'] == 'rating' }
+      schema = param['schema']
+
+      expect(schema['exclusiveMinimum']).to eq(0)
+      expect(schema['exclusiveMaximum']).to eq(5)
+      expect(schema['multipleOf']).to eq(0.5)
+    end
+  end
 end
