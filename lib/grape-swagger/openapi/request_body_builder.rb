@@ -181,6 +181,12 @@ module GrapeSwagger
               desc = param[:description] || param['description'] || param[:desc] || param['desc']
               prop_schema[:description] = desc if desc
 
+              # Add array properties if present
+              prop_schema[:items] = param[:items] if param[:items]
+              prop_schema[:minItems] = param[:minItems] if param[:minItems]
+              prop_schema[:maxItems] = param[:maxItems] if param[:maxItems]
+              prop_schema[:uniqueItems] = param[:uniqueItems] if param[:uniqueItems]
+
               properties[prop_name] = prop_schema
             end
           end
@@ -209,6 +215,10 @@ module GrapeSwagger
                 type: param[:type] || 'string'
               }
               properties[param[:name].to_sym][:format] = param[:format] if param[:format]
+              properties[param[:name].to_sym][:items] = param[:items] if param[:items]
+              properties[param[:name].to_sym][:minItems] = param[:minItems] if param[:minItems]
+              properties[param[:name].to_sym][:maxItems] = param[:maxItems] if param[:maxItems]
+              properties[param[:name].to_sym][:uniqueItems] = param[:uniqueItems] if param[:uniqueItems]
             end
           end
 

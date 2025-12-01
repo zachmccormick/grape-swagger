@@ -127,4 +127,45 @@ describe 'Schema Validation Keywords' do
       expect(schema['maximum']).to eq(100)
     end
   end
+
+  describe 'unique_items documentation key' do
+    before :all do
+      module TheApi
+        class UniqueItemsApi < Grape::API
+          format :json
+
+          desc 'Create items with unique tags'
+          params do
+            optional :tags, type: Array[String], documentation: { unique_items: true }
+          end
+          post '/items' do
+            { tags: params[:tags] }
+          end
+
+          add_swagger_documentation(
+            openapi_version: '3.1.0',
+            doc_version: '1.0.0',
+            info: { title: 'Unique Items API' }
+          )
+        end
+      end
+    end
+
+    def app
+      TheApi::UniqueItemsApi
+    end
+
+    subject do
+      get '/swagger_doc'
+      JSON.parse(last_response.body)
+    end
+
+    it 'generates uniqueItems in schema' do
+      # In OpenAPI 3.1.0, POST body params are in components/schemas
+      schema = subject['components']['schemas']['postItems']
+      prop = schema['properties']['tags']
+
+      expect(prop['uniqueItems']).to eq(true)
+    end
+  end
 end

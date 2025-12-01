@@ -188,6 +188,7 @@ module GrapeSwagger
           if value_type[:is_array]
             @parsed_param[:minItems] = value_type[:min_length] if value_type.key?(:min_length)
             @parsed_param[:maxItems] = value_type[:max_length] if value_type.key?(:max_length)
+            @parsed_param[:uniqueItems] = value_type[:unique_items] if value_type.key?(:unique_items)
           else
             @parsed_param[:minLength] = value_type[:min_length] if value_type.key?(:min_length)
             @parsed_param[:maxLength] = value_type[:max_length] if value_type.key?(:max_length)

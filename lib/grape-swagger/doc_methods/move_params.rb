@@ -88,6 +88,9 @@ module GrapeSwagger
             property[:type] = 'array'
             property[:description] = param.delete(:description) unless param[:description].nil?
             property[:example] = param.delete(:example) unless param[:example].nil?
+            property[:minItems] = param[:minItems] unless param[:minItems].nil?
+            property[:maxItems] = param[:maxItems] unless param[:maxItems].nil?
+            property[:uniqueItems] = param[:uniqueItems] unless param[:uniqueItems].nil?
             property[:items] = document_as_property(param)[:items]
           end
         end
@@ -178,7 +181,7 @@ module GrapeSwagger
 
         def property_keys
           %i[type format description minimum maximum items enum default additional_properties additionalProperties
-             example]
+             example readOnly writeOnly minItems maxItems uniqueItems]
         end
 
         def deletable?(param)
