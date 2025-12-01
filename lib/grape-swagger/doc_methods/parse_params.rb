@@ -8,6 +8,13 @@ module GrapeSwagger
           method = route.request_method
           additional_documentation = settings.fetch(:documentation, {})
           settings.merge!(additional_documentation)
+
+          # Support $ref to component parameters (OpenAPI 3.1.0 feature)
+          # Usage: documentation: { ref: '#/components/parameters/PageParam' }
+          if settings[:ref]
+            return { '$ref' => settings[:ref] }
+          end
+
           data_type = DataType.call(settings)
 
           value_type = settings.merge(data_type: data_type, path: path, param_name: param, method: method)
@@ -29,6 +36,8 @@ module GrapeSwagger
           document_additional_properties(definitions, settings) unless value_type[:is_array]
           document_add_extensions(settings)
           document_example(settings)
+          document_deprecated(settings)
+          document_read_write_only(settings)
 
           @parsed_param
         end
@@ -147,6 +156,15 @@ module GrapeSwagger
           @parsed_param[key] = settings[:example]
         end
 
+        def document_deprecated(settings)
+          @parsed_param[:deprecated] = settings[:deprecated] if settings.key?(:deprecated)
+        end
+
+        def document_read_write_only(settings)
+          @parsed_param[:readOnly] = settings[:read_only] if settings.key?(:read_only)
+          @parsed_param[:writeOnly] = settings[:write_only] if settings.key?(:write_only)
+        end
+
         def param_type(value_type, consumes)
           param_type = value_type[:param_type] || value_type[:in]
           if !value_type[:is_array] && value_type[:path].include?("{#{value_type[:param_name]}}")
@@ -181,7 +199,7 @@ module GrapeSwagger
           when Proc
             parse_enum_or_range_values(values.call) if values.parameters.empty?
           when Range
-            parse_range_values(values) if values.first.is_a?(Integer)
+            parse_range_values(values) if values.first.is_a?(Numeric)
           when Array
             { enum: values }
           else
@@ -190,7 +208,17 @@ module GrapeSwagger
         end
 
         def parse_range_values(values)
-          { minimum: values.begin, maximum: values.end }.compact
+          result = { minimum: values.begin }
+
+          if values.exclude_end?
+            # Exclusive end range (0...1.0) -> exclusiveMaximum
+            result[:exclusiveMaximum] = values.end
+          else
+            # Inclusive range (0..1.0) -> maximum
+            result[:maximum] = values.end
+          end
+
+          result.compact
         end
       end
     end
