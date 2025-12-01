@@ -63,16 +63,12 @@ module GrapeSwagger
         # For named classes, to_s returns the class name
         # For anonymous classes, to_s returns something like "#<Class:0x...>"
         stringified = klass.to_s
-        unless stringified.start_with?('#<')
-          return stringified.split('::').last
-        end
+        return stringified.split('::').last unless stringified.start_with?('#<')
 
         # Fall back to .name for test mocks that define custom name methods
         # Note: Some DSL classes override .name, so this is a fallback
         class_name = klass.name
-        if class_name && !class_name.start_with?('#<')
-          return class_name.split('::').last
-        end
+        return class_name.split('::').last if class_name && !class_name.start_with?('#<')
 
         raise ArgumentError, "Cannot determine component name for #{klass}"
       end
@@ -80,17 +76,11 @@ module GrapeSwagger
       def to_openapi
         result = {}
 
-        unless parameters.empty?
-          result[:parameters] = parameters.transform_values(&:to_openapi)
-        end
+        result[:parameters] = parameters.transform_values(&:to_openapi) unless parameters.empty?
 
-        unless responses.empty?
-          result[:responses] = responses.transform_values(&:to_openapi)
-        end
+        result[:responses] = responses.transform_values(&:to_openapi) unless responses.empty?
 
-        unless headers.empty?
-          result[:headers] = headers.transform_values(&:to_openapi)
-        end
+        result[:headers] = headers.transform_values(&:to_openapi) unless headers.empty?
 
         result
       end

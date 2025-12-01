@@ -11,7 +11,7 @@ module GrapeSwagger
             # Skip auto-registration for anonymous classes (will be registered manually after const_set)
             begin
               GrapeSwagger::ComponentsRegistry.register_parameter(subclass)
-            rescue ArgumentError => e
+            rescue ArgumentError
               # Silently skip if we can't determine the name yet
               # This happens with Class.new before const_set
             end
