@@ -214,4 +214,51 @@ describe 'Schema Validation Keywords' do
       expect(schema['multipleOf']).to eq(0.5)
     end
   end
+
+  describe 'numeric validation in POST request body' do
+    before :all do
+      module TheApi
+        class NumericValidationPostApi < Grape::API
+          format :json
+
+          desc 'Create item with numeric validation in body'
+          params do
+            requires :price, type: Float, documentation: {
+              exclusive_minimum: 0,
+              exclusive_maximum: 1000,
+              multiple_of: 0.01
+            }
+          end
+          post '/items' do
+            { price: params[:price] }
+          end
+
+          add_swagger_documentation(
+            openapi_version: '3.1.0',
+            doc_version: '1.0.0',
+            info: { title: 'Numeric Validation POST API' }
+          )
+        end
+      end
+    end
+
+    def app
+      TheApi::NumericValidationPostApi
+    end
+
+    subject do
+      get '/swagger_doc'
+      JSON.parse(last_response.body)
+    end
+
+    it 'generates exclusiveMinimum, exclusiveMaximum, and multipleOf in request body schema' do
+      # In OpenAPI 3.1.0, POST body params are in components/schemas
+      schema = subject['components']['schemas']['postItems']
+      prop = schema['properties']['price']
+
+      expect(prop['exclusiveMinimum']).to eq(0)
+      expect(prop['exclusiveMaximum']).to eq(1000)
+      expect(prop['multipleOf']).to eq(0.01)
+    end
+  end
 end

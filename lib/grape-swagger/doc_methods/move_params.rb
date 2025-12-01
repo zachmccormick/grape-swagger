@@ -180,7 +180,7 @@ module GrapeSwagger
         end
 
         def property_keys
-          %i[type format description minimum maximum items enum default additional_properties additionalProperties
+          %i[type format description minimum maximum exclusiveMinimum exclusiveMaximum multipleOf items enum default additional_properties additionalProperties
              example readOnly writeOnly minItems maxItems uniqueItems]
         end
 
