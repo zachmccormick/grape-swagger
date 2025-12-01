@@ -57,8 +57,24 @@ module GrapeSwagger
       end
 
       def component_name_for(klass)
-        klass.component_name || klass.name&.split('::')&.last ||
-          raise(ArgumentError, "Cannot determine component name for #{klass}")
+        return klass.component_name if klass.component_name
+
+        # Try to_s first (works for classes defined with const_set)
+        # For named classes, to_s returns the class name
+        # For anonymous classes, to_s returns something like "#<Class:0x...>"
+        stringified = klass.to_s
+        unless stringified.start_with?('#<')
+          return stringified.split('::').last
+        end
+
+        # Fall back to .name for test mocks that define custom name methods
+        # Note: Some DSL classes override .name, so this is a fallback
+        class_name = klass.name
+        if class_name && !class_name.start_with?('#<')
+          return class_name.split('::').last
+        end
+
+        raise ArgumentError, "Cannot determine component name for #{klass}"
       end
 
       def to_openapi

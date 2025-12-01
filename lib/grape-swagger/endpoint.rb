@@ -40,6 +40,9 @@ module Grape
           security: options[:security],
           externalDocs: options[:external_docs],
           securityDefinitions: options[:security_definitions],
+          servers: options[:servers],
+          webhooks: options[:webhooks],
+          components: options[:components],
           version: version
         )
       end
@@ -166,6 +169,7 @@ module Grape
       method[:tags]        = route.options.fetch(:tags, tag_object(route, path))
       method[:operationId] = GrapeSwagger::DocMethods::OperationId.build(route, path)
       method[:deprecated] = deprecated_object(route)
+      method[:externalDocs] = external_docs_object(route)
 
       # Add requestBody and wrap responses for OpenAPI 3.1.0
       version = GrapeSwagger::OpenAPI::VersionSelector.build_spec(options)
@@ -189,9 +193,9 @@ module Grape
         )
         method[:requestBody] = request_body if request_body
 
-        # Remove body parameters from parameters array for OpenAPI 3.1.0
+        # Remove body/formData parameters from parameters array for OpenAPI 3.1.0
         if method[:parameters]
-          method[:parameters] = method[:parameters].reject { |p| p[:in] == 'body' }
+          method[:parameters] = method[:parameters].reject { |p| %w[body formData].include?(p[:in]) }
           method.delete(:parameters) if method[:parameters].empty?
         end
 
@@ -221,6 +225,11 @@ module Grape
           built_links = GrapeSwagger::OpenAPI::LinkBuilder.build(links_for_status, version)
           method[:responses][response_key][:links] = built_links if built_links
         end
+
+        # Remove Swagger 2.0 properties that are not valid in OpenAPI 3.x
+        # In OpenAPI 3.x, content types are specified in requestBody.content and responses.content
+        method.delete(:produces)
+        method.delete(:consumes)
       end
 
       method.delete_if { |_, value| value.nil? }
@@ -228,18 +237,23 @@ module Grape
       [route.request_method.downcase.to_sym, method]
     end
 
-    # Extract parameters with in: 'body'
+    # Extract parameters that should go into requestBody
+    # In OpenAPI 3.x, both 'body' and 'formData' parameters go into requestBody
     #
     # @param parameters [Array<Hash>] All parameters
-    # @return [Array<Hash>] Body parameters only
+    # @return [Array<Hash>] Body/formData parameters only
     def extract_body_params(parameters)
       return [] unless parameters.is_a?(Array)
 
-      parameters.select { |p| p.is_a?(Hash) && p[:in] == 'body' }
+      parameters.select { |p| p.is_a?(Hash) && %w[body formData].include?(p[:in]) }
     end
 
     def deprecated_object(route)
       route.options[:deprecated] if route.options.key?(:deprecated)
+    end
+
+    def external_docs_object(route)
+      route.options[:external_docs] if route.options.key?(:external_docs)
     end
 
     def security_object(route)
@@ -298,6 +312,13 @@ module Grape
         memo << GrapeSwagger::DocMethods::ParseParams.call(param, value, path, route, @definitions, consumes)
       end
 
+      # Add parameter references from route settings
+      if route.settings[:parameter_refs]
+        route.settings[:parameter_refs].each do |ref_name|
+          parameters << { '$ref' => "#/components/parameters/#{ref_name}" }
+        end
+      end
+
       if GrapeSwagger::DocMethods::MoveParams.can_be_moved?(route.request_method, parameters)
         parameters = GrapeSwagger::DocMethods::MoveParams.to_definition(path, parameters, route, @definitions)
       end
@@ -309,6 +330,13 @@ module Grape
 
     def response_object(route, options)
       codes(route).each_with_object({}) do |value, memo|
+        # Support $ref to component responses (OpenAPI 3.1.0 feature)
+        ref_value = value[:$ref] || value['$ref']
+        if ref_value
+          memo[value[:code]] = { '$ref' => ref_value }
+          next
+        end
+
         value[:message] ||= ''
         memo[value[:code]] = { description: value[:message] ||= '' } unless memo[value[:code]].present?
         memo[value[:code]][:headers] = value[:headers] if value[:headers]
@@ -322,7 +350,7 @@ module Grape
         next if value[:model] == ''
 
         response_model = value[:model] ? expose_params_from_model(value[:model]) : @item
-        next unless @definitions[response_model]
+        next unless response_model && @definitions[response_model]
         next if response_model.start_with?('Swagger_doc')
 
         @definitions[response_model][:description] ||= "#{response_model} model"
