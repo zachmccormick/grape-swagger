@@ -35,7 +35,7 @@ params, readOnly/writeOnly, callbacks, links, externalDocs).
 | `title`          | string         | Yes      | ✅          | ✅        |
 | `summary`        | string         | No       | ✅          | ✅        |
 | `description`    | string         | No       | ✅          | ✅        |
-| `termsOfService` | string         | No       | ✅          | ❌        |
+| `termsOfService` | string         | No       | ✅          | ✅        |
 | `contact`        | Contact Object | No       | ✅          | ✅        |
 | `license`        | License Object | No       | ✅          | ✅        |
 | `version`        | string         | Yes      | ✅          | ✅        |
@@ -188,10 +188,7 @@ params, readOnly/writeOnly, callbacks, links, externalDocs).
 | `schema`   | Schema Object                                   | No       | ✅          | ✅        |
 | `example`  | any                                             | No       | ✅          | ✅        |
 | `examples` | Map[string, Example Object \| Reference Object] | No       | ✅          | ✅        |
-| `encoding` | Map[string, Encoding Object]                    | No       | 🔶         | ❌        |
-
-**Note on `encoding`**: The Encoding Object itself is fully implemented and tested (`EncodingBuilder`), but it is not
-yet integrated into the Media Type Object generation for request bodies. The infrastructure exists but is not wired up.
+| `encoding` | Map[string, Encoding Object]                    | No       | ✅          | ✅        |
 
 ---
 
@@ -199,7 +196,7 @@ yet integrated into the Media Type Object generation for request bodies. The inf
 
 | Field           | Type                       | Required | Spec Tests | Demo App |
 |-----------------|----------------------------|----------|------------|----------|
-| `contentType`   | string                     | No       | ✅          | ❌        |
+| `contentType`   | string                     | No       | ✅          | ✅        |
 | `headers`       | Map[string, Header Object] | No       | ✅          | ❌        |
 | `style`         | string                     | No       | ✅          | ❌        |
 | `explode`       | boolean                    | No       | ✅          | ❌        |
@@ -305,15 +302,15 @@ yet integrated into the Media Type Object generation for request bodies. The inf
 
 | Field             | Type                           | Required | Spec Tests | Demo App |
 |-------------------|--------------------------------|----------|------------|----------|
-| `description`     | string                         | No       | ✅          | ❌        |
-| `required`        | boolean                        | No       | ✅          | ❌        |
-| `deprecated`      | boolean                        | No       | ❌          | ❌        |
+| `description`     | string                         | No       | ✅          | ✅        |
+| `required`        | boolean                        | No       | ✅          | ✅        |
+| `deprecated`      | boolean                        | No       | ✅          | ✅        |
 | `allowEmptyValue` | boolean                        | No       | ❌          | ❌        |
 | `style`           | string                         | No       | ✅          | ❌        |
 | `explode`         | boolean                        | No       | ❌          | ❌        |
 | `allowReserved`   | boolean                        | No       | ❌          | ❌        |
-| `schema`          | Schema Object                  | No       | ✅          | ❌        |
-| `example`         | any                            | No       | ✅          | ❌        |
+| `schema`          | Schema Object                  | No       | ✅          | ✅        |
+| `example`         | any                            | No       | ✅          | ✅        |
 | `examples`        | Map[string, Example Object]    | No       | ❌          | ❌        |
 | `content`         | Map[string, Media Type Object] | No       | ❌          | ❌        |
 
@@ -342,11 +339,11 @@ yet integrated into the Media Type Object generation for request bodies. The inf
 | Target                                | Spec Tests | Demo App |
 |---------------------------------------|------------|----------|
 | `#/components/schemas/{name}`         | ✅          | ✅        |
-| `#/components/responses/{name}`       | ❌          | ❌        |
-| `#/components/parameters/{name}`      | ❌          | ❌        |
+| `#/components/responses/{name}`       | ✅          | 🔶        |
+| `#/components/parameters/{name}`      | ✅          | 🔶        |
 | `#/components/examples/{name}`        | ❌          | ❌        |
 | `#/components/requestBodies/{name}`   | ❌          | ❌        |
-| `#/components/headers/{name}`         | ❌          | ❌        |
+| `#/components/headers/{name}`         | ✅          | 🔶        |
 | `#/components/securitySchemes/{name}` | ✅          | ✅        |
 | `#/components/links/{name}`           | ❌          | ❌        |
 | `#/components/callbacks/{name}`       | ❌          | ❌        |
@@ -756,7 +753,7 @@ yet integrated into the Media Type Object generation for request bodies. The inf
 | **Links**                           | ✅ Complete        | ✅ Demonstrated     |
 | **External Docs**                   | ✅ Complete        | ✅ Demonstrated     |
 | **XML**                             | ❌ Not implemented | ❌ Not demonstrated |
-| **Reusable Components**             | 🔶 Partial        | 🔶 Partial         |
+| **Reusable Components**             | ✅ Good (params, responses, headers) | 🔶 Partial         |
 
 ---
 
@@ -766,7 +763,7 @@ The following features are documented in OpenAPI 3.1.0 but not currently support
 
 ### High Priority (Commonly Used)
 
-- Reusable components (responses, parameters, examples, requestBodies, headers)
+- Reusable components for examples, requestBodies (responses, parameters, headers now supported via DSL)
 - Header parameter examples in demo
 
 ### Medium Priority

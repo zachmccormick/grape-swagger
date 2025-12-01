@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'content_negotiator'
+require_relative 'encoding_builder'
 
 module GrapeSwagger
   module OpenAPI
@@ -48,12 +49,12 @@ module GrapeSwagger
           BODY_METHODS.include?(method.to_s.upcase)
         end
 
-        # Extract parameters with in: 'body'
+        # Extract parameters with in: 'body' or 'formData'
         #
         # @param params [Array<Hash>] All parameters
-        # @return [Array<Hash>] Body parameters only
+        # @return [Array<Hash>] Body/formData parameters only
         def extract_body_params(params)
-          params.select { |p| p[:in] == 'body' }
+          params.select { |p| %w[body formData].include?(p[:in]) }
         end
 
         # Determine if the request body is required
@@ -81,7 +82,7 @@ module GrapeSwagger
           end
         end
 
-        # Build a media type object (schema + examples)
+        # Build a media type object (schema + examples + encoding)
         #
         # @param body_params [Array<Hash>] Body parameters
         # @param media_type [String] Media type string
@@ -97,6 +98,12 @@ module GrapeSwagger
           result[:example] = examples_data[:example] if examples_data[:example]
           result[:examples] = examples_data[:examples] if examples_data[:examples]
 
+          # Add encoding for form media types (multipart/form-data, application/x-www-form-urlencoded)
+          if form_media_type?(media_type)
+            encoding = build_encoding(body_params, version)
+            result[:encoding] = encoding if encoding
+          end
+
           result
         end
 
@@ -107,11 +114,14 @@ module GrapeSwagger
         # @param version [GrapeSwagger::OpenAPI::Version] The OpenAPI version
         # @return [Hash] Schema object
         def build_schema(body_params, media_type, version)
-          # If there's a single body parameter with a $ref, use it directly
-          if body_params.length == 1 && body_params.first[:$ref]
-            ref = body_params.first[:$ref]
-            translated_ref = SchemaResolver.translate_ref(ref, version)
-            return { '$ref': translated_ref }
+          # If there's a single body parameter with a schema containing $ref, use it directly
+          if body_params.length == 1
+            param = body_params.first
+            schema_ref = param[:schema]&.[]('$ref') || param[:schema]&.[](:$ref) || param[:$ref]
+            if schema_ref
+              translated_ref = SchemaResolver.translate_ref(schema_ref, version)
+              return { '$ref': translated_ref }
+            end
           end
 
           # If there's a single body parameter with type and properties, use it
@@ -153,12 +163,25 @@ module GrapeSwagger
           body_params.each do |param|
             if param[:properties]
               properties.merge!(param[:properties])
-            elsif param[:name] && param[:type]
+            elsif param[:name]
               # Create a property for this parameter
-              properties[param[:name].to_sym] = {
-                type: param[:type]
-              }
-              properties[param[:name].to_sym][:format] = param[:format] if param[:format]
+              # Use symbol for property name, but handle both string and symbol param names
+              prop_name = param[:name].to_s
+              prop_schema = {}
+
+              # Set type - handle both symbol and string keys
+              type = param[:type] || param['type'] || 'string'
+              prop_schema[:type] = type
+
+              # Add format if present
+              format = param[:format] || param['format']
+              prop_schema[:format] = format if format
+
+              # Add description if present
+              desc = param[:description] || param['description'] || param[:desc] || param['desc']
+              prop_schema[:description] = desc if desc
+
+              properties[prop_name] = prop_schema
             end
           end
 
@@ -232,6 +255,41 @@ module GrapeSwagger
         def build_description(body_params)
           # Use the description from the first body parameter
           body_params.first&.[](:description)
+        end
+
+        # Build encoding for form data parameters
+        # Encoding specifies how individual form fields should be serialized
+        #
+        # @param body_params [Array<Hash>] Body parameters
+        # @param version [GrapeSwagger::OpenAPI::Version] The OpenAPI version
+        # @return [Hash, nil] Encoding object or nil
+        def build_encoding(body_params, version)
+          encoding_config = {}
+
+          body_params.each do |param|
+            next unless param[:name]
+
+            # Check for encoding in documentation hash
+            # e.g., documentation: { encoding: { contentType: 'image/png' } }
+            doc_encoding = param.dig(:documentation, :encoding)
+            if doc_encoding
+              encoding_config[param[:name].to_sym] = doc_encoding
+              next
+            end
+
+            # Auto-detect encoding for file types
+            # Files typically need contentType specification
+            param_type = param[:type]&.to_s&.downcase
+            param_format = param[:format]&.to_s&.downcase
+
+            if param_type == 'file' || param_format == 'binary'
+              encoding_config[param[:name].to_sym] = {
+                contentType: 'application/octet-stream'
+              }
+            end
+          end
+
+          EncodingBuilder.build_for_fields(encoding_config, version)
         end
       end
     end

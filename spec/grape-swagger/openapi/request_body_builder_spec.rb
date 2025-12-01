@@ -495,5 +495,80 @@ describe GrapeSwagger::OpenAPI::RequestBodyBuilder do
         expect(schema[:properties]).to have_key(:theme)
       end
     end
+
+    # Story 6.3: Encoding for Form Data
+    context 'Encoding for multipart/form-data' do
+      it 'includes encoding for file parameters' do
+        params = [
+          { in: 'formData', name: 'file', type: 'file', required: true }
+        ]
+        consumes = ['multipart/form-data']
+
+        result = described_class.build(params, 'POST', consumes, version_3_1_0)
+
+        expect(result[:content]['multipart/form-data']).to have_key(:encoding)
+        expect(result[:content]['multipart/form-data'][:encoding]).to have_key(:file)
+        expect(result[:content]['multipart/form-data'][:encoding][:file][:contentType]).to eq('application/octet-stream')
+      end
+
+      it 'includes encoding for binary format parameters' do
+        params = [
+          { in: 'formData', name: 'data', type: 'string', format: 'binary', required: true }
+        ]
+        consumes = ['multipart/form-data']
+
+        result = described_class.build(params, 'POST', consumes, version_3_1_0)
+
+        expect(result[:content]['multipart/form-data']).to have_key(:encoding)
+        expect(result[:content]['multipart/form-data'][:encoding]).to have_key(:data)
+      end
+
+      it 'includes custom encoding from documentation' do
+        params = [
+          {
+            in: 'formData',
+            name: 'image',
+            type: 'string',
+            format: 'binary',
+            documentation: { encoding: { contentType: 'image/png' } }
+          }
+        ]
+        consumes = ['multipart/form-data']
+
+        result = described_class.build(params, 'POST', consumes, version_3_1_0)
+
+        encoding = result[:content]['multipart/form-data'][:encoding]
+        expect(encoding[:image][:contentType]).to eq('image/png')
+      end
+
+      it 'does not include encoding for non-form media types' do
+        params = [
+          { in: 'body', name: 'file', type: 'file', required: true }
+        ]
+        consumes = ['application/json']
+
+        result = described_class.build(params, 'POST', consumes, version_3_1_0)
+
+        expect(result[:content]['application/json']).not_to have_key(:encoding)
+      end
+
+      it 'supports encoding with style and explode options' do
+        params = [
+          {
+            in: 'formData',
+            name: 'tags',
+            type: 'array',
+            documentation: { encoding: { style: 'form', explode: true } }
+          }
+        ]
+        consumes = ['application/x-www-form-urlencoded']
+
+        result = described_class.build(params, 'POST', consumes, version_3_1_0)
+
+        encoding = result[:content]['application/x-www-form-urlencoded'][:encoding]
+        expect(encoding[:tags][:style]).to eq('form')
+        expect(encoding[:tags][:explode]).to be true
+      end
+    end
   end
 end

@@ -62,6 +62,22 @@ describe GrapeSwagger::ReusableHeader do
 
       expect(header_class.component_name).to eq('V2RateLimit')
     end
+
+    it 'supports deprecated true for deprecation warnings' do
+      header_class = Class.new(described_class) do
+        def self.name
+          'DeprecatedHeader'
+        end
+
+        description 'This header is deprecated'
+        schema type: 'string'
+        deprecated true
+      end
+
+      openapi = header_class.to_openapi
+
+      expect(openapi[:deprecated]).to eq(true)
+    end
   end
 
   describe 'auto-registration' do
