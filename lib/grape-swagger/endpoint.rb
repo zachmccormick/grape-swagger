@@ -349,6 +349,14 @@ module Grape
         # Explicitly request no model with { model: '' }
         next if value[:model] == ''
 
+        # If model is a Symbol, it's a reference to a reusable response
+        if value[:model].is_a?(Symbol)
+          # Verify it exists
+          GrapeSwagger::ComponentsRegistry.find_response!(value[:model])
+          memo[value[:code]] = { '$ref' => "#/components/responses/#{value[:model]}" }
+          next
+        end
+
         response_model = value[:model] ? expose_params_from_model(value[:model]) : @item
         next unless response_model && @definitions[response_model]
         next if response_model.start_with?('Swagger_doc')
