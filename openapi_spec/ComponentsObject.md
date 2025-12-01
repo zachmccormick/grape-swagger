@@ -38,13 +38,22 @@ All component keys (map keys) must match the regular expression pattern: `^[a-zA
 **Auto-Generated (✅):**
 - `schemas`: Automatically created from `Grape::Entity` definitions and inline schemas
 - `securitySchemes`: Automatically created from `security_definitions` configuration
+- `parameters`: Automatically created from `ReusableParameter` subclasses (see [ReusableComponents.md](ReusableComponents.md))
+- `responses`: Automatically created from `ReusableResponse` subclasses (see [ReusableComponents.md](ReusableComponents.md))
+- `headers`: Automatically created from `ReusableHeader` subclasses (see [ReusableComponents.md](ReusableComponents.md))
 
 **Manual Only (❌):**
-- All other component types must be manually added to the OpenAPI document
+- `examples`, `requestBodies`, `links`, `callbacks`, `pathItems` must be manually added to the OpenAPI document
 - grape-swagger does not automatically extract and deduplicate these from endpoint definitions
 - You can add them by modifying the generated OpenAPI document or extending grape-swagger
 
 **Note:** While grape-swagger can accept and pass through manually-added components, it does not automatically generate or reference them. The "Auto-Generated" column indicates whether grape-swagger will populate these components automatically from your API definitions.
+
+### Reusable Components DSL
+
+grape-swagger provides a DSL for defining reusable parameters, responses, and headers using Ruby classes that auto-register on load. These classes follow a similar pattern to `Grape::Entity` and use Ruby's `inherited` hook to automatically register themselves in the components registry.
+
+See [ReusableComponents.md](ReusableComponents.md) for complete documentation and examples.
 
 ## Usage
 
@@ -142,11 +151,11 @@ add_swagger_documentation(
 
 ## TODO
 
-- [ ] Add reusable responses support
-- [ ] Add reusable parameters support
+- [x] Add reusable responses support (via ReusableResponse DSL)
+- [x] Add reusable parameters support (via ReusableParameter DSL)
+- [x] Add reusable headers support (via ReusableHeader DSL)
 - [ ] Add reusable examples support
 - [ ] Add reusable request bodies support
-- [ ] Add reusable headers support
 - [ ] Add reusable links support
 - [ ] Add reusable callbacks support
 - [ ] Add reusable pathItems support (3.1.0)
