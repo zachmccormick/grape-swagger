@@ -25,6 +25,10 @@ module GrapeSwagger
         @request_bodies ||= {}
       end
 
+      def path_items
+        @path_items ||= {}
+      end
+
       def register_parameter(klass)
         name = component_name_for(klass)
         warn_collision(:parameters, name, klass)
@@ -53,6 +57,12 @@ module GrapeSwagger
         name = component_name_for(klass)
         warn_collision(:request_bodies, name, klass)
         request_bodies[name] = klass
+      end
+
+      def register_path_item(klass)
+        name = component_name_for(klass)
+        warn_collision(:path_items, name, klass)
+        path_items[name] = klass
       end
 
       def find_parameter!(name)
@@ -90,6 +100,13 @@ module GrapeSwagger
         )
       end
 
+      def find_path_item!(name)
+        path_items[name.to_s] || raise(
+          ComponentNotFoundError,
+          "PathItem component '#{name}' not found. Available: #{path_items.keys.join(', ')}"
+        )
+      end
+
       def component_name_for(klass)
         return klass.component_name if klass.component_name
 
@@ -120,6 +137,8 @@ module GrapeSwagger
 
         result[:requestBodies] = request_bodies.transform_values(&:to_openapi) unless request_bodies.empty?
 
+        result[:pathItems] = path_items.transform_values(&:to_openapi) unless path_items.empty?
+
         result
       end
 
@@ -129,6 +148,7 @@ module GrapeSwagger
         @headers = {}
         @examples = {}
         @request_bodies = {}
+        @path_items = {}
       end
 
       private

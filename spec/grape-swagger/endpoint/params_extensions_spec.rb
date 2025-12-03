@@ -5,12 +5,14 @@ require 'spec_helper'
 describe 'Parameter reference DSL' do
   before(:all) do
     # Define reusable parameter as a constant
-    Object.const_set(:RefTestPageParam, Class.new(GrapeSwagger::ReusableParameter) do
-      name 'page'
-      in_query
-      schema type: 'integer', default: 1
-      description 'Page number'
-    end) unless defined?(RefTestPageParam)
+    unless defined?(RefTestPageParam)
+      Object.const_set(:RefTestPageParam, Class.new(GrapeSwagger::ReusableParameter) do
+        name 'page'
+        in_query
+        schema type: 'integer', default: 1
+        description 'Page number'
+      end)
+    end
   end
 
   before(:each) do

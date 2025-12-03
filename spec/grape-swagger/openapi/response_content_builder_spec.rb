@@ -72,7 +72,9 @@ describe GrapeSwagger::OpenAPI::ResponseContentBuilder do
           result = described_class.build(response, produces, version_3_1_0)
 
           expect(result).to have_key(:headers)
-          expect(result[:headers]).to eq(response[:headers])
+          # Headers are transformed by HeaderBuilder for OpenAPI 3.1.0
+          expect(result[:headers][:'X-Rate-Limit'][:description]).to eq('Rate limit')
+          expect(result[:headers][:'X-Rate-Limit'][:schema][:type]).to eq('integer')
           expect(result[:content]['application/json']).not_to have_key(:headers)
         end
       end

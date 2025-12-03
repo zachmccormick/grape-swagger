@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
 
 ruby '>= 3.0'
 
-gem 'rails', '~> 7.1'
-gem 'puma'
 gem 'bootsnap', require: false
+gem 'puma'
+gem 'rails', '~> 7.1'
 
 # Grape ecosystem
 gem 'grape', '~> 2.0'
@@ -20,5 +22,5 @@ group :development do
 end
 
 # For JSON responses
-gem 'oj'
 gem 'multi_json'
+gem 'oj'

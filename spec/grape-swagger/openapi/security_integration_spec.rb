@@ -20,7 +20,7 @@ describe 'Security Scheme Integration' do
       end
 
       # OAuth2 protected endpoint
-      desc 'OAuth2 protected', security: [{ oauth2: ['read', 'write'] }]
+      desc 'OAuth2 protected', security: [{ oauth2: %w[read write] }]
       get '/oauth2' do
         { message: 'oauth2 required' }
       end
@@ -185,7 +185,7 @@ describe 'Security Scheme Integration' do
       end
 
       it 'includes OAuth2 security with scopes' do
-        expect(paths['/oauth2']['get']['security']).to eq([{ 'oauth2' => ['read', 'write'] }])
+        expect(paths['/oauth2']['get']['security']).to eq([{ 'oauth2' => %w[read write] }])
       end
 
       it 'includes OpenID Connect security' do

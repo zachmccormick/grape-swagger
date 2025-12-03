@@ -24,12 +24,12 @@ describe 'Nullable and Binary Handling Integration' do
       result = GrapeSwagger::OpenAPI::SchemaResolver.translate_schema(schema, version_3_1_0)
 
       expect(result[:properties][:id][:type]).to eq('integer')
-      expect(result[:properties][:name][:type]).to eq(['string', 'null'])
-      expect(result[:properties][:email][:type]).to eq(['string', 'null'])
+      expect(result[:properties][:name][:type]).to eq(%w[string null])
+      expect(result[:properties][:email][:type]).to eq(%w[string null])
       expect(result[:properties][:email][:format]).to eq('email')
-      expect(result[:properties][:age][:type]).to eq(['integer', 'null'])
-      expect(result[:properties][:active][:type]).to eq(['boolean', 'null'])
-      expect(result[:properties][:tags][:type]).to eq(['array', 'null'])
+      expect(result[:properties][:age][:type]).to eq(%w[integer null])
+      expect(result[:properties][:active][:type]).to eq(%w[boolean null])
+      expect(result[:properties][:tags][:type]).to eq(%w[array null])
       expect(result[:properties][:tags][:items]).to eq({ type: 'string' })
     end
   end
@@ -80,21 +80,21 @@ describe 'Nullable and Binary Handling Integration' do
       expect(result[:properties][:user_id][:type]).to eq('integer')
 
       # Nullable binary field with default media type
-      expect(result[:properties][:avatar][:type]).to eq(['string', 'null'])
+      expect(result[:properties][:avatar][:type]).to eq(%w[string null])
       expect(result[:properties][:avatar][:contentEncoding]).to eq('base64')
       expect(result[:properties][:avatar][:contentMediaType]).to eq('application/octet-stream')
       expect(result[:properties][:avatar]).not_to have_key(:format)
       expect(result[:properties][:avatar]).not_to have_key(:nullable)
 
       # Nullable binary field with custom media type
-      expect(result[:properties][:resume][:type]).to eq(['string', 'null'])
+      expect(result[:properties][:resume][:type]).to eq(%w[string null])
       expect(result[:properties][:resume][:contentEncoding]).to eq('base64')
       expect(result[:properties][:resume][:contentMediaType]).to eq('application/pdf')
       expect(result[:properties][:resume]).not_to have_key(:format)
       expect(result[:properties][:resume]).not_to have_key(:nullable)
 
       # Regular nullable field
-      expect(result[:properties][:bio][:type]).to eq(['string', 'null'])
+      expect(result[:properties][:bio][:type]).to eq(%w[string null])
       expect(result[:properties][:bio]).not_to have_key(:nullable)
     end
   end
@@ -139,8 +139,8 @@ describe 'Nullable and Binary Handling Integration' do
       result = GrapeSwagger::OpenAPI::SchemaResolver.translate_schema(schema, version_3_1_0)
 
       user_props = result[:properties][:users][:items][:properties]
-      expect(user_props[:name][:type]).to eq(['string', 'null'])
-      expect(user_props[:avatar][:type]).to eq(['string', 'null'])
+      expect(user_props[:name][:type]).to eq(%w[string null])
+      expect(user_props[:avatar][:type]).to eq(%w[string null])
       expect(user_props[:avatar][:contentEncoding]).to eq('base64')
       expect(user_props[:avatar][:contentMediaType]).to eq('application/octet-stream')
     end
@@ -166,7 +166,7 @@ describe 'Nullable and Binary Handling Integration' do
             description: 'MIME type of the file'
           }
         },
-        required: ['file', 'filename']
+        required: %w[file filename]
       }
 
       result = GrapeSwagger::OpenAPI::SchemaResolver.translate_schema(schema, version_3_1_0)
@@ -178,10 +178,10 @@ describe 'Nullable and Binary Handling Integration' do
 
       expect(result[:properties][:filename][:type]).to eq('string')
 
-      expect(result[:properties][:content_type][:type]).to eq(['string', 'null'])
+      expect(result[:properties][:content_type][:type]).to eq(%w[string null])
       expect(result[:properties][:content_type][:description]).to eq('MIME type of the file')
 
-      expect(result[:required]).to eq(['file', 'filename'])
+      expect(result[:required]).to eq(%w[file filename])
     end
   end
 
@@ -209,13 +209,13 @@ describe 'Nullable and Binary Handling Integration' do
 
       # User schema
       expect(result['User'][:properties][:id][:type]).to eq('integer')
-      expect(result['User'][:properties][:name][:type]).to eq(['string', 'null'])
-      expect(result['User'][:properties][:avatar][:type]).to eq(['string', 'null'])
+      expect(result['User'][:properties][:name][:type]).to eq(%w[string null])
+      expect(result['User'][:properties][:avatar][:type]).to eq(%w[string null])
       expect(result['User'][:properties][:avatar][:contentEncoding]).to eq('base64')
 
       # Document schema
       expect(result['Document'][:properties][:content][:contentEncoding]).to eq('base64')
-      expect(result['Document'][:properties][:title][:type]).to eq(['string', 'null'])
+      expect(result['Document'][:properties][:title][:type]).to eq(%w[string null])
     end
   end
 end

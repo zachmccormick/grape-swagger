@@ -8,7 +8,8 @@ module V1
       expose :type, documentation: {
         type: String,
         desc: 'Payment type discriminator',
-        values: %w[credit_card bank_account digital_wallet]
+        values: %w[credit_card bank_account digital_wallet],
+        is_discriminator: true # OpenAPI 3.1.0 discriminator support
       }
       expose :is_default, documentation: { type: 'Boolean' }
       expose :created_at, format_with: :iso_timestamp, documentation: { type: DateTime }

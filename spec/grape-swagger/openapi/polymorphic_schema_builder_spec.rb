@@ -11,7 +11,7 @@ describe GrapeSwagger::OpenAPI::PolymorphicSchemaBuilder do
     context 'Story 14.2: OneOf Schema Support' do
       context 'when oneOf with two schemas' do
         it 'creates oneOf array with schema refs' do
-          schemas = ['SuccessResponse', 'ErrorResponse']
+          schemas = %w[SuccessResponse ErrorResponse]
 
           result = described_class.build_one_of(schemas, nil, version_3_1_0)
 
@@ -21,7 +21,7 @@ describe GrapeSwagger::OpenAPI::PolymorphicSchemaBuilder do
         end
 
         it 'converts schema names to component refs' do
-          schemas = ['SuccessResponse', 'ErrorResponse']
+          schemas = %w[SuccessResponse ErrorResponse]
 
           result = described_class.build_one_of(schemas, nil, version_3_1_0)
 
@@ -32,23 +32,23 @@ describe GrapeSwagger::OpenAPI::PolymorphicSchemaBuilder do
 
       context 'when oneOf with multiple schemas' do
         it 'handles three or more schemas' do
-          schemas = ['SchemaA', 'SchemaB', 'SchemaC', 'SchemaD']
+          schemas = %w[SchemaA SchemaB SchemaC SchemaD]
 
           result = described_class.build_one_of(schemas, nil, version_3_1_0)
 
           expect(result[:oneOf].size).to eq(4)
           expect(result[:oneOf].map { |s| s['$ref'] }).to eq([
-            '#/components/schemas/SchemaA',
-            '#/components/schemas/SchemaB',
-            '#/components/schemas/SchemaC',
-            '#/components/schemas/SchemaD'
-          ])
+                                                               '#/components/schemas/SchemaA',
+                                                               '#/components/schemas/SchemaB',
+                                                               '#/components/schemas/SchemaC',
+                                                               '#/components/schemas/SchemaD'
+                                                             ])
         end
       end
 
       context 'when oneOf with discriminator' do
         it 'includes discriminator object' do
-          schemas = ['SuccessResponse', 'ErrorResponse']
+          schemas = %w[SuccessResponse ErrorResponse]
           discriminator = {
             property_name: 'status',
             mapping: {
@@ -108,7 +108,7 @@ describe GrapeSwagger::OpenAPI::PolymorphicSchemaBuilder do
 
       context 'when Swagger 2.0 is used' do
         it 'returns nil (oneOf not supported in Swagger 2.0)' do
-          schemas = ['SuccessResponse', 'ErrorResponse']
+          schemas = %w[SuccessResponse ErrorResponse]
 
           result = described_class.build_one_of(schemas, nil, version_2_0)
 
@@ -123,7 +123,7 @@ describe GrapeSwagger::OpenAPI::PolymorphicSchemaBuilder do
     context 'Story 14.3: AnyOf Schema Support' do
       context 'when anyOf with two schemas' do
         it 'creates anyOf array with schema refs' do
-          schemas = ['BaseSchema', 'ExtensionSchema']
+          schemas = %w[BaseSchema ExtensionSchema]
 
           result = described_class.build_any_of(schemas, nil, version_3_1_0)
 
@@ -133,7 +133,7 @@ describe GrapeSwagger::OpenAPI::PolymorphicSchemaBuilder do
         end
 
         it 'converts schema names to component refs' do
-          schemas = ['BaseSchema', 'ExtensionSchema']
+          schemas = %w[BaseSchema ExtensionSchema]
 
           result = described_class.build_any_of(schemas, nil, version_3_1_0)
 
@@ -144,7 +144,7 @@ describe GrapeSwagger::OpenAPI::PolymorphicSchemaBuilder do
 
       context 'when anyOf with multiple schemas' do
         it 'handles three or more schemas' do
-          schemas = ['Required', 'OptionalA', 'OptionalB', 'OptionalC']
+          schemas = %w[Required OptionalA OptionalB OptionalC]
 
           result = described_class.build_any_of(schemas, nil, version_3_1_0)
 
@@ -154,7 +154,7 @@ describe GrapeSwagger::OpenAPI::PolymorphicSchemaBuilder do
 
       context 'when anyOf with discriminator' do
         it 'includes discriminator object' do
-          schemas = ['TypeA', 'TypeB']
+          schemas = %w[TypeA TypeB]
           discriminator = {
             property_name: 'type'
           }
@@ -197,7 +197,7 @@ describe GrapeSwagger::OpenAPI::PolymorphicSchemaBuilder do
 
       context 'when Swagger 2.0 is used' do
         it 'returns nil (anyOf not supported in Swagger 2.0)' do
-          schemas = ['SchemaA', 'SchemaB']
+          schemas = %w[SchemaA SchemaB]
 
           result = described_class.build_any_of(schemas, nil, version_2_0)
 

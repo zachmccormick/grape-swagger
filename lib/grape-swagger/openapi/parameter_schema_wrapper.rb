@@ -21,6 +21,13 @@ module GrapeSwagger
         multipleOf
         exclusiveMinimum
         exclusiveMaximum
+        readOnly
+        writeOnly
+        minProperties
+        maxProperties
+        title
+        not
+        externalDocs
       ].freeze
 
       # Fields that should remain at the parameter level
@@ -36,6 +43,7 @@ module GrapeSwagger
         allowReserved
         example
         examples
+        content
       ].freeze
 
       # Default style values per parameter location
@@ -56,17 +64,28 @@ module GrapeSwagger
           # Return unchanged for Swagger 2.0
           return parameter unless version.openapi_3_1_0?
 
+          # Return $ref parameters as-is (component references)
+          return parameter if parameter['$ref'] || parameter[:$ref]
+
           # Create a deep copy to avoid mutating the original and preserve all keys (symbol and string)
           wrapped = deep_copy(parameter)
 
-          # Extract schema fields
-          schema = extract_schema_fields(wrapped)
+          # Check if content is present - content and schema are mutually exclusive
+          has_content = wrapped.key?(:content) || wrapped.key?('content')
 
-          # Add schema object if there are schema fields
-          wrapped[:schema] = schema unless schema.empty?
+          unless has_content
+            # Extract schema fields
+            schema = extract_schema_fields(wrapped)
 
-          # Add serialization options
-          add_serialization_options(wrapped, parameter)
+            # Add schema object if there are schema fields
+            wrapped[:schema] = schema unless schema.empty?
+          end
+
+          # Convert x-example to example for OpenAPI 3.1.0
+          convert_example_extension(wrapped)
+
+          # Add serialization options (only when using schema, not content)
+          add_serialization_options(wrapped, parameter) unless has_content
 
           wrapped
         end
@@ -161,6 +180,20 @@ module GrapeSwagger
         # @param original [Hash] Original parameter
         def add_allow_empty_value(wrapped, original)
           wrapped[:allowEmptyValue] = original[:allowEmptyValue] if original.key?(:allowEmptyValue)
+        end
+
+        # Converts x-example extension to standard example for OpenAPI 3.1.0
+        # In Swagger 2.0, examples for non-body parameters use x-example extension
+        # In OpenAPI 3.1.0, we use the standard example field
+        #
+        # @param wrapped [Hash] Wrapped parameter
+        def convert_example_extension(wrapped)
+          # Check for both symbol and string keys
+          x_example_key = wrapped.key?(:'x-example') ? :'x-example' : 'x-example'
+          return unless wrapped.key?(x_example_key)
+
+          # Move x-example to example
+          wrapped[:example] = wrapped.delete(x_example_key)
         end
       end
     end

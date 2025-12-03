@@ -44,3 +44,9 @@ spec/swagger_v2/x-dummy.rb
 coverage/
 .byebug_history
 .claude/
+node_modules/
+
+# Demo app temporary files
+demo/demo-ts/openapi-ts-error-*.log
+demo/demo-ts/swagger.json
+demo/validator_output.txt

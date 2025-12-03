@@ -13,7 +13,7 @@ describe GrapeSwagger::OpenAPI::NullableTypeHandler do
           schema = { type: 'string', nullable: true }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['string', 'null'])
+          expect(result[:type]).to eq(%w[string null])
           expect(result).not_to have_key(:nullable)
         end
 
@@ -39,7 +39,7 @@ describe GrapeSwagger::OpenAPI::NullableTypeHandler do
           schema = { type: 'integer', nullable: true }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['integer', 'null'])
+          expect(result[:type]).to eq(%w[integer null])
           expect(result).not_to have_key(:nullable)
         end
 
@@ -56,7 +56,7 @@ describe GrapeSwagger::OpenAPI::NullableTypeHandler do
           schema = { type: 'number', nullable: true }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['number', 'null'])
+          expect(result[:type]).to eq(%w[number null])
           expect(result).not_to have_key(:nullable)
         end
       end
@@ -66,7 +66,7 @@ describe GrapeSwagger::OpenAPI::NullableTypeHandler do
           schema = { type: 'boolean', nullable: true }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['boolean', 'null'])
+          expect(result[:type]).to eq(%w[boolean null])
           expect(result).not_to have_key(:nullable)
         end
       end
@@ -76,7 +76,7 @@ describe GrapeSwagger::OpenAPI::NullableTypeHandler do
           schema = { type: 'array', nullable: true, items: { type: 'string' } }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['array', 'null'])
+          expect(result[:type]).to eq(%w[array null])
           expect(result[:items]).to eq({ type: 'string' })
           expect(result).not_to have_key(:nullable)
         end
@@ -102,7 +102,7 @@ describe GrapeSwagger::OpenAPI::NullableTypeHandler do
           }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['object', 'null'])
+          expect(result[:type]).to eq(%w[object null])
           expect(result[:properties][:name]).to eq({ type: 'string' })
           expect(result[:properties][:age]).to eq({ type: 'integer' })
           expect(result).not_to have_key(:nullable)
@@ -114,7 +114,7 @@ describe GrapeSwagger::OpenAPI::NullableTypeHandler do
           schema = { type: 'string', nullable: true, enum: %w[red green blue] }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['string', 'null'])
+          expect(result[:type]).to eq(%w[string null])
           expect(result[:enum]).to eq(%w[red green blue])
           expect(result).not_to have_key(:nullable)
         end
@@ -131,7 +131,7 @@ describe GrapeSwagger::OpenAPI::NullableTypeHandler do
           }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['string', 'null'])
+          expect(result[:type]).to eq(%w[string null])
           expect(result[:format]).to eq('email')
           expect(result[:description]).to eq('User email address')
           expect(result[:example]).to eq('user@example.com')
@@ -141,18 +141,18 @@ describe GrapeSwagger::OpenAPI::NullableTypeHandler do
 
       context 'type array deduplication' do
         it 'prevents duplicate "null" in type array' do
-          schema = { type: ['string', 'null'], nullable: true }
+          schema = { type: %w[string null], nullable: true }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['string', 'null'])
+          expect(result[:type]).to eq(%w[string null])
           expect(result[:type].count('null')).to eq(1)
         end
 
         it 'handles already array type with nullable' do
-          schema = { type: ['string', 'integer'], nullable: true }
+          schema = { type: %w[string integer], nullable: true }
           result = described_class.transform(schema, version_3_1_0)
 
-          expect(result[:type]).to eq(['string', 'integer', 'null'])
+          expect(result[:type]).to eq(%w[string integer null])
         end
       end
 

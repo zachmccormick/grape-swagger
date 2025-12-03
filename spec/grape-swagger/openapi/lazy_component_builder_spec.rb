@@ -23,7 +23,10 @@ describe GrapeSwagger::OpenAPI::LazyComponentBuilder do
 
     it 'does not call the block during registration' do
       call_count = 0
-      builder.register('User') { call_count += 1; { type: 'object' } }
+      builder.register('User') do
+        call_count += 1
+        { type: 'object' }
+      end
 
       expect(call_count).to eq(0)
     end
@@ -46,7 +49,10 @@ describe GrapeSwagger::OpenAPI::LazyComponentBuilder do
 
     it 'caches resolved components' do
       call_count = 0
-      builder.register('User') { call_count += 1; { type: 'object' } }
+      builder.register('User') do
+        call_count += 1
+        { type: 'object' }
+      end
 
       builder.resolve('User')
       builder.resolve('User')
@@ -66,7 +72,7 @@ describe GrapeSwagger::OpenAPI::LazyComponentBuilder do
 
     it 'handles dependencies between components' do
       builder.register('Post') do
-        user = builder.resolve('User')
+        builder.resolve('User')
         { type: 'object', properties: { author: { '$ref' => '#/components/schemas/User' } } }
       end
       builder.register('User') { { type: 'object', properties: { name: { type: 'string' } } } }

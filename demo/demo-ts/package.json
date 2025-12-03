@@ -1,0 +1,31 @@
+{
+  "name": "grape-swagger-demo-ts",
+  "version": "1.0.0",
+  "description": "TypeScript SDK with React Query generated from grape-swagger OpenAPI 3.1.0 demo",
+  "type": "module",
+  "scripts": {
+    "generate": "openapi-ts",
+    "generate:spec": "cd .. && RAILS_ENV=test bundle exec rails runner \"require 'json'; env = Rack::MockRequest.env_for('/swagger_doc', 'HTTP_HOST' => 'localhost'); status, headers, body = Rails.application.call(env); content = body.respond_to?(:body) ? body.body : body.to_a.join; spec = JSON.parse(content); File.write('demo-ts/swagger.json', JSON.pretty_generate(spec))\"",
+    "generate:all": "npm run generate:spec && npm run generate",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hey-api/client-fetch": "^0.8.0",
+    "@tanstack/react-query": "^5.62.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.66.0",
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "jsdom": "^25.0.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

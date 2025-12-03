@@ -139,25 +139,64 @@ module Grape
 
     # path object
     def path_item(routes, options)
+      # First pass: collect all path-level param names across all routes for this path
+      # We need to do this before processing routes so we can build params correctly
+      path_level_params_by_path = {}
+      path_refs_by_path = {}
+      path_servers_by_path = {}
+
+      # First pass: collect path-level settings from all routes
+      routes.each do |route|
+        _item, path = GrapeSwagger::DocMethods::PathString.build(route, options)
+
+        # Check for path_ref setting (OpenAPI 3.1.0 feature)
+        path_refs_by_path[path.to_s] = route.settings[:path_ref] if route.settings[:path_ref]
+
+        # Check for path_servers setting (OpenAPI 3.1.0 feature)
+        path_servers_by_path[path.to_s] = route.settings[:path_servers] if route.settings[:path_servers]
+
+        path_param_names = collect_path_param_names(route)
+        next if path_param_names.empty?
+
+        path_level_params_by_path[path.to_s] ||= Set.new
+        path_level_params_by_path[path.to_s].merge(path_param_names)
+      end
+
+      # Second pass: build path items using collected settings
       routes.each do |route|
         next if hidden?(route, options)
 
         @item, path = GrapeSwagger::DocMethods::PathString.build(route, options)
+
+        # Handle path_ref for OpenAPI 3.1.0 (entire path becomes a $ref)
+        if path_refs_by_path[path.to_s] && !@paths.key?(path.to_s)
+          path_ref_name = path_refs_by_path[path.to_s]
+          # Verify the path item component exists
+          GrapeSwagger::ComponentsRegistry.find_path_item!(path_ref_name)
+          @paths[path.to_s] = { '$ref' => "#/components/pathItems/#{path_ref_name}" }
+          next
+        end
+
+        # Skip if this path is already a $ref
+        next if @paths[path.to_s].is_a?(Hash) && @paths[path.to_s].key?('$ref')
+
         @entity = route.entity || route.options[:success]
 
-        verb, method_object = method_object(route, options, path)
+        # Pass path-level param names to method_object so params can be built before filtering
+        verb, method_object, path_level_params = method_object_with_path_params(
+          route, options, path, path_level_params_by_path[path.to_s]&.to_a || []
+        )
 
         if @paths.key?(path.to_s)
           @paths[path.to_s][verb] = method_object
         else
           @paths[path.to_s] = { verb => method_object }
 
-          # Add path-level parameters if defined via path_params DSL
-          # Extract them from the operation parameters (if any exist)
-          if method_object[:parameters]&.any?
-            path_level_params = collect_path_level_params(route, options, path, method_object[:parameters])
-            @paths[path.to_s][:parameters] = path_level_params if path_level_params&.any?
-          end
+          # Add path-level parameters if we collected any
+          @paths[path.to_s][:parameters] = path_level_params if path_level_params&.any?
+
+          # Add path-level servers if specified (OpenAPI 3.1.0 feature)
+          @paths[path.to_s][:servers] = path_servers_by_path[path.to_s] if path_servers_by_path[path.to_s]
         end
 
         GrapeSwagger::DocMethods::Extensions.add(@paths[path.to_s], @definitions, route)
@@ -177,6 +216,7 @@ module Grape
       method[:operationId] = GrapeSwagger::DocMethods::OperationId.build(route, path)
       method[:deprecated] = deprecated_object(route)
       method[:externalDocs] = external_docs_object(route)
+      method[:servers] = servers_object(route)
 
       # Add requestBody and wrap responses for OpenAPI 3.1.0
       version = GrapeSwagger::OpenAPI::VersionSelector.build_spec(options)
@@ -244,6 +284,108 @@ module Grape
       [route.request_method.downcase.to_sym, method]
     end
 
+    # Like method_object but also returns path-level parameters separately
+    # @param route [Grape::Router::Route] The route
+    # @param options [Hash] Documentation options
+    # @param path [String] The path string
+    # @param path_level_param_names [Array<String>] Names of params that should be at path level
+    # @return [Array] [verb, method_object, path_level_params]
+    def method_object_with_path_params(route, options, path, path_level_param_names)
+      # Build all params first (before filtering)
+      consumes = consumes_object(route, options[:consumes] || options[:format])
+      all_params = params_object_unfiltered(route, options, path, consumes)
+
+      # Extract path-level params
+      path_level_params = all_params&.select do |p|
+        path_level_param_names.include?(p[:name]&.to_s)
+      end
+
+      # Filter out path-level params from operation params
+      operation_params = all_params&.reject do |p|
+        path_level_param_names.include?(p[:name]&.to_s)
+      end
+
+      # Build the rest of method object
+      method = {}
+      method[:summary]     = summary_object(route)
+      method[:description] = description_object(route)
+      method[:produces]    = produces_object(route, options[:produces] || options[:format])
+      method[:consumes]    = consumes
+      method[:parameters]  = finalize_params(operation_params, route, path)
+      method[:security]    = security_object(route)
+      method[:responses]   = response_object(route, options)
+      method[:tags]        = route.options.fetch(:tags, tag_object(route, path))
+      method[:operationId] = GrapeSwagger::DocMethods::OperationId.build(route, path)
+      method[:deprecated] = deprecated_object(route)
+      method[:externalDocs] = external_docs_object(route)
+      method[:servers] = servers_object(route)
+
+      # Handle OpenAPI 3.1.0 specifics
+      version = GrapeSwagger::OpenAPI::VersionSelector.build_spec(options)
+      if version.openapi_3_1_0?
+        # Wrap parameters in schema objects
+        if method[:parameters]
+          method[:parameters] = method[:parameters].map do |param|
+            GrapeSwagger::OpenAPI::ParameterSchemaWrapper.wrap(param, version)
+          end
+        end
+
+        # Wrap path-level params in schema objects too
+        if path_level_params&.any?
+          path_level_params = path_level_params.map do |param|
+            GrapeSwagger::OpenAPI::ParameterSchemaWrapper.wrap(param, version)
+          end
+        end
+
+        # Extract body parameters before removing them
+        body_params = extract_body_params(method[:parameters])
+
+        # Build requestBody
+        request_body = GrapeSwagger::OpenAPI::RequestBodyBuilder.build(
+          body_params,
+          route.request_method,
+          method[:consumes],
+          version
+        )
+        method[:requestBody] = request_body if request_body
+
+        # Remove body/formData parameters
+        if method[:parameters]
+          method[:parameters] = method[:parameters].reject { |p| %w[body formData].include?(p[:in]) }
+          method.delete(:parameters) if method[:parameters].empty?
+        end
+
+        # Wrap response schemas
+        if method[:responses]
+          method[:responses] = method[:responses].transform_values do |response|
+            GrapeSwagger::OpenAPI::ResponseContentBuilder.build(response, method[:produces], version)
+          end
+        end
+
+        # Add callbacks
+        if route.options[:callbacks]
+          callbacks = GrapeSwagger::OpenAPI::CallbackBuilder.build(route.options[:callbacks], version)
+          method[:callbacks] = callbacks if callbacks
+        end
+
+        # Add links
+        route.options[:links]&.each do |status_code, links_for_status|
+          response_key = method[:responses]&.key?(status_code) ? status_code : status_code.to_s
+          next unless method[:responses] && method[:responses][response_key]
+
+          built_links = GrapeSwagger::OpenAPI::LinkBuilder.build(links_for_status, version)
+          method[:responses][response_key][:links] = built_links if built_links
+        end
+
+        method.delete(:produces)
+        method.delete(:consumes)
+      end
+
+      method.delete_if { |_, value| value.nil? }
+
+      [route.request_method.downcase.to_sym, method, path_level_params]
+    end
+
     # Extract parameters that should go into requestBody
     # In OpenAPI 3.x, both 'body' and 'formData' parameters go into requestBody
     #
@@ -261,6 +403,10 @@ module Grape
 
     def external_docs_object(route)
       route.options[:external_docs] if route.options.key?(:external_docs)
+    end
+
+    def servers_object(route)
+      route.options[:servers] if route.options.key?(:servers)
     end
 
     def security_object(route)
@@ -320,17 +466,51 @@ module Grape
       end
 
       # Add parameter references from route settings
-      if route.settings[:parameter_refs]
-        route.settings[:parameter_refs].each do |ref_name|
-          parameters << { '$ref' => "#/components/parameters/#{ref_name}" }
-        end
+      route.settings[:parameter_refs]&.each do |ref_name|
+        parameters << { '$ref' => "#/components/parameters/#{ref_name}" }
       end
 
       # Filter out parameters that are defined at path level via path_params
       path_param_names = collect_path_param_names(route)
-      if path_param_names.any?
-        parameters = parameters.reject { |p| path_param_names.include?(p[:name]&.to_s) }
+      parameters = parameters.reject { |p| path_param_names.include?(p[:name]&.to_s) } if path_param_names.any?
+
+      if GrapeSwagger::DocMethods::MoveParams.can_be_moved?(route.request_method, parameters)
+        parameters = GrapeSwagger::DocMethods::MoveParams.to_definition(path, parameters, route, @definitions)
       end
+
+      GrapeSwagger::DocMethods::FormatData.to_format(parameters)
+
+      parameters.presence
+    end
+
+    # Build params without filtering out path-level params
+    # Used by method_object_with_path_params to get all params first
+    def params_object_unfiltered(route, options, path, consumes)
+      parameters = build_request_params(route, options).each_with_object([]) do |(param, value), memo|
+        next if hidden_parameter?(value)
+
+        value = { required: false }.merge(value) if value.is_a?(Hash)
+        _, value = default_type([[param, value]]).first if value == ''
+
+        if value.dig(:documentation, :type)
+          expose_params(value[:documentation][:type])
+        elsif value[:type]
+          expose_params(value[:type])
+        end
+        memo << GrapeSwagger::DocMethods::ParseParams.call(param, value, path, route, @definitions, consumes)
+      end
+
+      # Add parameter references from route settings
+      route.settings[:parameter_refs]&.each do |ref_name|
+        parameters << { '$ref' => "#/components/parameters/#{ref_name}" }
+      end
+
+      parameters.presence
+    end
+
+    # Finalize params by applying move_params and format_data
+    def finalize_params(parameters, route, path)
+      return nil if parameters.nil? || parameters.empty?
 
       if GrapeSwagger::DocMethods::MoveParams.can_be_moved?(route.request_method, parameters)
         parameters = GrapeSwagger::DocMethods::MoveParams.to_definition(path, parameters, route, @definitions)
@@ -386,9 +566,19 @@ module Grape
       end
     end
 
+    # OpenAPI 3.1.0 wildcard status codes (1XX, 2XX, 3XX, 4XX, 5XX)
+    WILDCARD_STATUS_CODES = %w[1XX 2XX 3XX 4XX 5XX].freeze
+
+    def wildcard_status_code?(code)
+      WILDCARD_STATUS_CODES.include?(code.to_s.upcase)
+    end
+
     def success_code?(code)
       status = code.is_a?(Array) ? code.first : code[:code]
-      status.between?(200, 299)
+      # Wildcard codes are not considered success codes (except 2XX which we handle specially)
+      return status.to_s.upcase == '2XX' if wildcard_status_code?(status)
+
+      status.is_a?(Integer) && status.between?(200, 299)
     end
 
     def http_codes_from_route(route)
@@ -492,12 +682,21 @@ module Grape
 
     def build_reference(route, value, response_model, settings)
       # TODO: proof that the definition exist, if model isn't specified
+      # Extract reference overrides for OpenAPI 3.1.0 Reference Objects
+      ref_overrides = {
+        summary: value[:ref_summary],
+        description: value[:ref_description]
+      }.compact
+
       reference = if value.key?(:as)
-                    { value[:as] => build_reference_hash(response_model) }
+                    { value[:as] => build_reference_hash(response_model, ref_overrides) }
                   else
-                    build_reference_hash(response_model)
+                    build_reference_hash(response_model, ref_overrides)
                   end
-      return reference unless value[:code] == 'default' || value[:code] < 300
+      # Skip array wrapping for error responses (non-2xx codes, wildcards like 4XX/5XX, and 'default')
+      return reference if value[:code] == 'default'
+      return reference if wildcard_status_code?(value[:code]) && value[:code].to_s.upcase != '2XX'
+      return reference if value[:code].is_a?(Integer) && value[:code] >= 300
 
       if value.key?(:as) && value.key?(:is_array)
         reference[value[:as]] = build_reference_array(reference[value[:as]])
@@ -508,8 +707,12 @@ module Grape
       build_root(route, reference, response_model, settings)
     end
 
-    def build_reference_hash(response_model)
-      { '$ref' => "#/definitions/#{response_model}" }
+    def build_reference_hash(response_model, ref_overrides = {})
+      result = { '$ref' => "#/definitions/#{response_model}" }
+      # Add summary/description overrides for OpenAPI 3.1.0 Reference Objects
+      result[:summary] = ref_overrides[:summary] if ref_overrides[:summary]
+      result[:description] = ref_overrides[:description] if ref_overrides[:description]
+      result
     end
 
     def build_reference_array(reference)
@@ -624,6 +827,9 @@ module Grape
         default_code[:is_array] = entity[:is_array] if entity[:is_array]
         default_code[:required] = entity[:required] if entity[:required]
         default_code[:type] = entity[:type] if entity[:type]
+        # OpenAPI 3.1.0 Reference Object overrides
+        default_code[:ref_summary] = entity[:ref_summary] if entity[:ref_summary]
+        default_code[:ref_description] = entity[:ref_description] if entity[:ref_description]
       else
         default_code = GrapeSwagger::DocMethods::StatusCodes.get[route.request_method.downcase.to_sym]
         default_code[:model] = entity if entity
@@ -643,7 +849,7 @@ module Grape
     # @param path [String] The path string
     # @param operation_params [Array<Hash>] Parameters from the operation level
     # @return [Array<Hash>, nil] Path-level parameters or nil
-    def collect_path_level_params(route, options, path, operation_params)
+    def collect_path_level_params(route, _options, _path, operation_params)
       path_param_names = collect_path_param_names(route)
       return nil if path_param_names.empty?
 
@@ -658,40 +864,17 @@ module Grape
 
     # Collect names of parameters defined at path level via path_params DSL
     #
-    # We identify path params by checking which params are present in path_parameter_block
-    # settings and also appear in the route's path template
+    # We look for :path_level_param_names in route settings which is set by
+    # the path_params DSL method using route_setting
     #
     # @param route [Grape::Router::Route] The route
     # @return [Array<String>] Parameter names defined via path_params
     def collect_path_param_names(route)
-      # Get the endpoint's inheritable_setting
-      endpoint = route.app
-      inheritable_setting = endpoint.instance_variable_get(:@inheritable_setting)
-      return [] unless inheritable_setting
+      # Get the route's settings which includes path_level_param_names
+      path_level_names = route.settings[:path_level_param_names]
+      return [] unless path_level_names.is_a?(Array)
 
-      # Collect all path_parameter_block settings from the inheritance chain
-      blocks = []
-      current = inheritable_setting
-      max_depth = 100 # Safety limit to prevent infinite loops
-      depth = 0
-
-      while current && depth < max_depth
-        if current.namespace && current.namespace[:path_parameter_block]
-          blocks << current.namespace[:path_parameter_block]
-        end
-        current = current.parent
-        depth += 1
-      end
-
-      return [] if blocks.empty?
-
-      # Extract parameter names from path template
-      # Path templates look like /users/{user_id} or /users/:user_id
-      path_template_params = route.path.scan(/[{:](\w+)[}]?/).flatten
-
-      # For simplicity, assume path_params defined parameters that appear in the path
-      # This is a reasonable heuristic since path_params should only be used for path parameters
-      path_template_params
+      path_level_names.flatten.map(&:to_s)
     end
   end
 end

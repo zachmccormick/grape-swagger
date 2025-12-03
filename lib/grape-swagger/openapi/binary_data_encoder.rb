@@ -49,9 +49,7 @@ module GrapeSwagger
 
         # Preserve custom contentMediaType if already present
         encoding = BINARY_ENCODINGS[format].dup
-        if result[:contentMediaType]
-          encoding[:contentMediaType] = result[:contentMediaType]
-        end
+        encoding[:contentMediaType] = result[:contentMediaType] if result[:contentMediaType]
 
         result.merge(encoding)
       end

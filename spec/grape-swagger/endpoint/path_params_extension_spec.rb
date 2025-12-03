@@ -11,11 +11,9 @@ describe 'Path-Level Parameters' do
     let(:app) do
       Class.new(Grape::API) do
         namespace :users do
-          path_params do
-            requires :user_id, type: Integer, desc: 'User ID'
-          end
+          route_param :user_id, type: Integer, desc: 'User ID' do
+            path_params :user_id # Mark as path-level parameter
 
-          route_param :user_id do
             get do
               { user_id: params[:user_id] }
             end
@@ -50,6 +48,59 @@ describe 'Path-Level Parameters' do
       # GET and PUT should NOT have the user_id parameter duplicated
       expect(path_item['get']['parameters']).to be_nil
       expect(path_item['put']['parameters']).to be_nil
+    end
+  end
+
+  describe 'nested path_params DSL' do
+    let(:app) do
+      Class.new(Grape::API) do
+        namespace :users do
+          route_param :user_id, type: Integer, desc: 'User ID' do
+            namespace :posts do
+              route_param :post_id, type: Integer, desc: 'Post ID' do
+                path_params :user_id, :post_id # Mark both as path-level
+
+                get do
+                  { user_id: params[:user_id], post_id: params[:post_id] }
+                end
+
+                delete do
+                  { deleted: true }
+                end
+              end
+            end
+          end
+        end
+
+        add_swagger_documentation openapi_version: '3.1.0'
+      end
+    end
+
+    subject do
+      get '/swagger_doc'
+      JSON.parse(last_response.body)
+    end
+
+    it 'places multiple parameters at path level for nested routes' do
+      path_item = subject['paths']['/users/{user_id}/posts/{post_id}']
+
+      # Both user_id and post_id should be at path level
+      expect(path_item['parameters']).to be_an(Array)
+      expect(path_item['parameters'].length).to eq(2)
+
+      param_names = path_item['parameters'].map { |p| p['name'] }
+      expect(param_names).to include('user_id')
+      expect(param_names).to include('post_id')
+
+      # All parameters should be marked as path params
+      path_item['parameters'].each do |param|
+        expect(param['in']).to eq('path')
+        expect(param['required']).to eq(true)
+      end
+
+      # GET and DELETE should NOT have parameters duplicated
+      expect(path_item['get']['parameters']).to be_nil
+      expect(path_item['delete']['parameters']).to be_nil
     end
   end
 end

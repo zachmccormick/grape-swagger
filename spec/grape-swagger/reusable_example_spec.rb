@@ -66,7 +66,7 @@ describe GrapeSwagger::ReusableExample do
 
   describe 'auto-registration' do
     it 'auto-registers when subclass is defined' do
-      test_class = Class.new(described_class) do
+      Class.new(described_class) do
         def self.name
           'AutoRegisteredExample'
         end

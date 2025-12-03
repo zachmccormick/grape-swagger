@@ -290,7 +290,7 @@ RSpec.describe GrapeSwagger::OpenAPI::SchemaResolver do
           nullable: true
         }
         result = described_class.translate_schema(schema, openapi_version)
-        expect(result[:type]).to eq(['string', 'null'])
+        expect(result[:type]).to eq(%w[string null])
         expect(result).not_to have_key(:nullable)
       end
 
@@ -313,7 +313,7 @@ RSpec.describe GrapeSwagger::OpenAPI::SchemaResolver do
           nullable: true
         }
         result = described_class.translate_schema(schema, openapi_version)
-        expect(result[:type]).to eq(['string', 'null'])
+        expect(result[:type]).to eq(%w[string null])
         expect(result[:contentEncoding]).to eq('base64')
         expect(result[:contentMediaType]).to eq('application/octet-stream')
         expect(result).not_to have_key(:format)
@@ -329,8 +329,8 @@ RSpec.describe GrapeSwagger::OpenAPI::SchemaResolver do
           }
         }
         result = described_class.translate_schema(schema, openapi_version)
-        expect(result[:properties][:name][:type]).to eq(['string', 'null'])
-        expect(result[:properties][:age][:type]).to eq(['integer', 'null'])
+        expect(result[:properties][:name][:type]).to eq(%w[string null])
+        expect(result[:properties][:age][:type]).to eq(%w[integer null])
       end
     end
   end

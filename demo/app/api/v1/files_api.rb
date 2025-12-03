@@ -8,9 +8,21 @@ module V1
 
     resource :files do
       desc 'List uploaded files',
+           summary: 'Get a paginated list of files',
+           detail: 'Returns metadata for all uploaded files with optional content type filtering.',
            is_array: true,
-           success: { model: Entities::FileMetadata },
-           failure: [{ code: 401, message: 'Unauthorized' }],
+           success: {
+             model: Entities::FileMetadata,
+             examples: {
+               'application/json' => [
+                 { id: 1, filename: 'report.pdf', content_type: 'application/pdf', size_bytes: 102_400 },
+                 { id: 2, filename: 'photo.jpg', content_type: 'image/jpeg', size_bytes: 2_048_000 }
+               ]
+             }
+           },
+           failure: [
+             { code: 401, message: 'Unauthorized', examples: { 'application/json' => { error: 'Invalid token' } } }
+           ],
            tags: ['files']
       params do
         optional :content_type, type: String, desc: 'Filter by MIME type'

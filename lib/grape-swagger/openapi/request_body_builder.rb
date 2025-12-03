@@ -187,6 +187,29 @@ module GrapeSwagger
               prop_schema[:maxItems] = param[:maxItems] if param[:maxItems]
               prop_schema[:uniqueItems] = param[:uniqueItems] if param[:uniqueItems]
 
+              # Add title if present (OpenAPI 3.1.0 / JSON Schema feature)
+              prop_schema[:title] = param[:title] if param[:title]
+
+              # Add not constraint if present (OpenAPI 3.1.0 / JSON Schema feature)
+              prop_schema[:not] = param[:not] if param[:not]
+
+              # Add enum if present
+              prop_schema[:enum] = param[:enum] if param[:enum]
+
+              # Add default if present
+              prop_schema[:default] = param[:default] if param.key?(:default)
+
+              # Add readOnly/writeOnly if present
+              prop_schema[:readOnly] = param[:readOnly] if param[:readOnly]
+              prop_schema[:writeOnly] = param[:writeOnly] if param[:writeOnly]
+
+              # Add object constraints if present
+              prop_schema[:minProperties] = param[:minProperties] if param[:minProperties]
+              prop_schema[:maxProperties] = param[:maxProperties] if param[:maxProperties]
+
+              # Add externalDocs if present (OpenAPI 3.1.0 / JSON Schema feature)
+              prop_schema[:externalDocs] = param[:externalDocs] if param[:externalDocs]
+
               properties[prop_name] = prop_schema
             end
           end
@@ -211,14 +234,46 @@ module GrapeSwagger
             if param[:properties]
               properties.merge!(param[:properties])
             elsif param[:name]
-              properties[param[:name].to_sym] = {
-                type: param[:type] || 'string'
-              }
-              properties[param[:name].to_sym][:format] = param[:format] if param[:format]
-              properties[param[:name].to_sym][:items] = param[:items] if param[:items]
-              properties[param[:name].to_sym][:minItems] = param[:minItems] if param[:minItems]
-              properties[param[:name].to_sym][:maxItems] = param[:maxItems] if param[:maxItems]
-              properties[param[:name].to_sym][:uniqueItems] = param[:uniqueItems] if param[:uniqueItems]
+              prop_name = param[:name].to_sym
+              prop_schema = { type: param[:type] || 'string' }
+
+              # Add format if present
+              prop_schema[:format] = param[:format] if param[:format]
+
+              # Add description if present
+              desc = param[:description] || param['description'] || param[:desc] || param['desc']
+              prop_schema[:description] = desc if desc
+
+              # Add array properties if present
+              prop_schema[:items] = param[:items] if param[:items]
+              prop_schema[:minItems] = param[:minItems] if param[:minItems]
+              prop_schema[:maxItems] = param[:maxItems] if param[:maxItems]
+              prop_schema[:uniqueItems] = param[:uniqueItems] if param[:uniqueItems]
+
+              # Add title if present (OpenAPI 3.1.0 / JSON Schema feature)
+              prop_schema[:title] = param[:title] if param[:title]
+
+              # Add not constraint if present (OpenAPI 3.1.0 / JSON Schema feature)
+              prop_schema[:not] = param[:not] if param[:not]
+
+              # Add enum if present
+              prop_schema[:enum] = param[:enum] if param[:enum]
+
+              # Add default if present
+              prop_schema[:default] = param[:default] if param.key?(:default)
+
+              # Add readOnly/writeOnly if present
+              prop_schema[:readOnly] = param[:readOnly] if param[:readOnly]
+              prop_schema[:writeOnly] = param[:writeOnly] if param[:writeOnly]
+
+              # Add object constraints if present
+              prop_schema[:minProperties] = param[:minProperties] if param[:minProperties]
+              prop_schema[:maxProperties] = param[:maxProperties] if param[:maxProperties]
+
+              # Add externalDocs if present (OpenAPI 3.1.0 / JSON Schema feature)
+              prop_schema[:externalDocs] = param[:externalDocs] if param[:externalDocs]
+
+              properties[prop_name] = prop_schema
             end
           end
 
@@ -292,11 +347,11 @@ module GrapeSwagger
             param_type = param[:type]&.to_s&.downcase
             param_format = param[:format]&.to_s&.downcase
 
-            if param_type == 'file' || param_format == 'binary'
-              encoding_config[param[:name].to_sym] = {
-                contentType: 'application/octet-stream'
-              }
-            end
+            next unless param_type == 'file' || param_format == 'binary'
+
+            encoding_config[param[:name].to_sym] = {
+              contentType: 'application/octet-stream'
+            }
           end
 
           EncodingBuilder.build_for_fields(encoding_config, version)

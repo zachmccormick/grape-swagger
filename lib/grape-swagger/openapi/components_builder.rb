@@ -13,6 +13,7 @@ module GrapeSwagger
         securitySchemes
         links
         callbacks
+        pathItems
       ].freeze
 
       def self.build(options)
@@ -26,14 +27,12 @@ module GrapeSwagger
         end
 
         # Merge explicit components (takes precedence)
-        if options[:components]
-          options[:components].each do |key, value|
-            if components[key]
-              components[key] = components[key].merge(value)
-            else
-              components[key] = value.dup
-            end
-          end
+        options[:components]&.each do |key, value|
+          components[key] = if components[key]
+                              components[key].merge(value)
+                            else
+                              value.dup
+                            end
         end
 
         # Handle legacy definitions -> schemas

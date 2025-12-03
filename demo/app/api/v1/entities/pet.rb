@@ -10,7 +10,8 @@ module V1
       expose :pet_type, documentation: {
         type: String,
         desc: 'Type discriminator',
-        values: %w[dog cat bird]
+        values: %w[dog cat bird],
+        is_discriminator: true # OpenAPI 3.1.0 discriminator support
       }
       expose :birth_date, documentation: {
         type: DateTime,

@@ -19,7 +19,7 @@ end
 
 class RateLimitResetHeader < GrapeSwagger::ReusableHeader
   description 'The time at which the rate limit window resets (Unix timestamp)'
-  schema type: 'integer', format: 'int64', example: 1640995200
+  schema type: 'integer', format: 'int64', example: 1_640_995_200
   required false
 end
 

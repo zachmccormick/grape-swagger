@@ -2,6 +2,7 @@
 
 require_relative 'schema_resolver'
 require_relative 'content_negotiator'
+require_relative 'header_builder'
 
 module GrapeSwagger
   module OpenAPI
@@ -17,6 +18,9 @@ module GrapeSwagger
           # Return original response for Swagger 2.0
           return response unless version.openapi_3_1_0?
 
+          # Return $ref responses as-is (component references)
+          return response if response['$ref'] || response[:$ref]
+
           # Build the response object for OpenAPI 3.1.0
           result = {
             description: response[:description]
@@ -27,7 +31,9 @@ module GrapeSwagger
           result[:content] = content if content
 
           # Add headers at response level (not inside content)
-          result[:headers] = response[:headers] if response[:headers]
+          # Use HeaderBuilder to transform headers for OpenAPI 3.1.0
+          headers = HeaderBuilder.build(response[:headers], version)
+          result[:headers] = headers if headers
 
           result
         end

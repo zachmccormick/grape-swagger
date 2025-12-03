@@ -120,7 +120,7 @@ describe GrapeSwagger::DocMethods::DataType do
         result = described_class.mapping('long', '3.1.0')
         expect(result[:type]).to eq('integer')
         expect(result[:minimum]).to eq(-2**63)
-        expect(result[:maximum]).to eq(2**63 - 1)
+        expect(result[:maximum]).to eq((2**63) - 1)
       end
 
       it 'returns hash with type for float' do

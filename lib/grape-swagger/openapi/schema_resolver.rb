@@ -57,9 +57,7 @@ module GrapeSwagger
           translate_nested(result, version)
 
           # Apply transformations for OpenAPI 3.1.0
-          result = apply_transformations(result, version)
-
-          result
+          apply_transformations(result, version)
         end
 
         # Translates all schemas within a components/definitions hash
@@ -207,9 +205,7 @@ module GrapeSwagger
           result = ConditionalSchemaBuilder.build(result, version)
 
           # Apply dependent schemas transformation (dependencies -> dependentSchemas/dependentRequired)
-          result = DependentSchemaHandler.transform(result, version)
-
-          result
+          DependentSchemaHandler.transform(result, version)
         end
       end
     end

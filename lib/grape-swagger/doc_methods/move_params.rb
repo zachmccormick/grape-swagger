@@ -181,7 +181,7 @@ module GrapeSwagger
 
         def property_keys
           %i[type format description minimum maximum exclusiveMinimum exclusiveMaximum multipleOf items enum default additional_properties additionalProperties
-             example readOnly writeOnly minItems maxItems uniqueItems]
+             example readOnly writeOnly minItems maxItems uniqueItems title not minProperties maxProperties externalDocs]
         end
 
         def deletable?(param)

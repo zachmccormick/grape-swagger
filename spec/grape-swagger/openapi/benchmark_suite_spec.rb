@@ -37,7 +37,7 @@ describe GrapeSwagger::OpenAPI::BenchmarkSuite do
 
   describe '.measure_object_allocations' do
     it 'counts object allocations during block' do
-      result = described_class.measure_object_allocations { Array.new(10) { Hash.new } }
+      result = described_class.measure_object_allocations { Array.new(10) { {} } }
 
       expect(result).to be_a(Integer)
       expect(result).to be >= 10

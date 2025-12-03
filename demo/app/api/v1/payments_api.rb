@@ -8,10 +8,39 @@ module V1
 
     resource :payment_methods do
       desc 'List payment methods',
+           summary: 'Get all saved payment methods',
+           detail: <<~DESC,
+             Returns all payment methods associated with the current user.
+
+             Payment methods are polymorphic - the response will include type-specific fields
+             based on the `type` discriminator:
+             - `credit_card`: includes card_brand, last_four, expiry_month/year
+             - `bank_account`: includes bank_name, account_type, routing info
+             - `digital_wallet`: includes provider (apple_pay, google_pay, etc.)
+           DESC
            is_array: true,
-           success: { model: Entities::PaymentMethod },
-           failure: [{ code: 401, message: 'Unauthorized' }],
-           notes: 'Returns polymorphic payment methods (credit_card, bank_account, digital_wallet)',
+           success: {
+             model: Entities::PaymentMethod,
+             examples: {
+               'application/json' => [
+                 {
+                   id: 1, type: 'credit_card', is_default: true,
+                   card_brand: 'visa', last_four: '4242', expiry_month: 12, expiry_year: 2025
+                 },
+                 {
+                   id: 2, type: 'bank_account', is_default: false,
+                   bank_name: 'Chase', account_type: 'checking', last_four: '6789'
+                 },
+                 {
+                   id: 3, type: 'digital_wallet', is_default: false,
+                   provider: 'apple_pay', wallet_id: 'wallet_abc123'
+                 }
+               ]
+             }
+           },
+           failure: [
+             { code: 401, message: 'Unauthorized', examples: { 'application/json' => { error: 'Invalid token' } } }
+           ],
            tags: ['payments']
       get do
         methods = [
@@ -57,10 +86,25 @@ module V1
       end
 
       desc 'Add a credit card',
-           success: { model: Entities::CreditCard },
+           summary: 'Save a new credit card',
+           detail: 'Tokenizes and saves a credit card for future payments. Card numbers are never stored.',
+           security: [{ oauth2: ['manage:payments'] }], # Requires specific OAuth scope
+           success: {
+             model: Entities::CreditCard,
+             examples: {
+               'application/json' => {
+                 id: 1234, type: 'credit_card', is_default: false,
+                 card_brand: 'visa', last_four: '4242', expiry_month: 12, expiry_year: 2025,
+                 cardholder_name: 'John Doe'
+               }
+             }
+           },
            failure: [
-             { code: 400, message: 'Invalid card details' },
-             { code: 422, message: 'Card declined' }
+             { code: 400, message: 'Invalid card details',
+               examples: { 'application/json' => { error: 'Invalid card number' } } },
+             { code: 401, message: 'Unauthorized' },
+             { code: 422, message: 'Card declined',
+               examples: { 'application/json' => { error: 'Card was declined by issuer' } } }
            ],
            tags: ['payments']
       params do

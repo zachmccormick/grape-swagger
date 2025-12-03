@@ -290,16 +290,23 @@ describe 'OpenAPI 3.1.0 RequestBody Integration' do
       JSON.parse(last_response.body)
     end
 
-    it 'generates schema with type object' do
+    it 'references a schema with $ref' do
       post_operation = subject['paths']['/users']['post']
       schema = post_operation['requestBody']['content']['application/json']['schema']
-      expect(schema['type']).to eq('object')
+      expect(schema).to have_key('$ref')
+      expect(schema['$ref']).to start_with('#/components/schemas/')
     end
 
-    it 'includes properties in schema' do
+    it 'referenced schema has type object and properties' do
       post_operation = subject['paths']['/users']['post']
       schema = post_operation['requestBody']['content']['application/json']['schema']
-      expect(schema).to have_key('properties')
+      schema_name = schema['$ref'].split('/').last
+      referenced_schema = subject['components']['schemas'][schema_name]
+      expect(referenced_schema['type']).to eq('object')
+      expect(referenced_schema).to have_key('properties')
+      expect(referenced_schema['properties']).to have_key('name')
+      expect(referenced_schema['properties']).to have_key('email')
+      expect(referenced_schema['properties']).to have_key('age')
     end
   end
 end

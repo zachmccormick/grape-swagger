@@ -78,7 +78,7 @@ describe GrapeSwagger::OpenAPI::ConditionalSchemaBuilder do
           schema = {
             type: 'object',
             properties: {
-              payment_type: { type: 'string', enum: ['credit_card', 'bank_transfer'] }
+              payment_type: { type: 'string', enum: %w[credit_card bank_transfer] }
             },
             if: {
               properties: {
@@ -151,7 +151,7 @@ describe GrapeSwagger::OpenAPI::ConditionalSchemaBuilder do
           schema = {
             type: 'object',
             properties: {
-              status: { type: 'string', enum: ['active', 'inactive', 'pending'] }
+              status: { type: 'string', enum: %w[active inactive pending] }
             },
             if: {
               properties: {
@@ -188,7 +188,7 @@ describe GrapeSwagger::OpenAPI::ConditionalSchemaBuilder do
                 street: { type: 'string' },
                 city: { type: 'string' }
               },
-              required: ['street', 'city']
+              required: %w[street city]
             },
             else: {
               required: []
@@ -196,7 +196,7 @@ describe GrapeSwagger::OpenAPI::ConditionalSchemaBuilder do
           }
           result = described_class.build(schema, version_3_1_0)
 
-          expect(result[:then][:required]).to eq(['street', 'city'])
+          expect(result[:then][:required]).to eq(%w[street city])
           expect(result[:else][:required]).to eq([])
         end
       end

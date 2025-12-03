@@ -1,5 +1,24 @@
 # frozen_string_literal: true
 
+# SimpleCov must be started before any application code is loaded
+if ENV['COVERAGE'] || ENV['CI']
+  require 'simplecov'
+  SimpleCov.start do
+    add_filter '/spec/'
+    add_filter '/vendor/'
+
+    add_group 'OpenAPI', 'lib/grape-swagger/openapi'
+    add_group 'Doc Methods', 'lib/grape-swagger/doc_methods'
+    add_group 'Core', 'lib/grape-swagger'
+
+    # Set minimum coverage threshold
+    minimum_coverage 80
+
+    # Enable branch coverage (Ruby 2.5+)
+    enable_coverage :branch if respond_to?(:enable_coverage)
+  end
+end
+
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
 MODEL_PARSER = ENV.key?('MODEL_PARSER') ? ENV['MODEL_PARSER'].to_s.downcase.sub('grape-swagger-', '') : 'mock'

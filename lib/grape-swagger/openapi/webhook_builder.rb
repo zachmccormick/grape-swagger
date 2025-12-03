@@ -96,9 +96,7 @@ module GrapeSwagger
           }
 
           # Add examples if present
-          if request_config[:examples]
-            content[media_type][:examples] = request_config[:examples]
-          end
+          content[media_type][:examples] = request_config[:examples] if request_config[:examples]
 
           content
         end
@@ -112,9 +110,7 @@ module GrapeSwagger
           return {} unless schema_config
 
           # If it's a $ref, return it with proper key format
-          if schema_config['$ref']
-            return { '$ref' => schema_config['$ref'] }
-          end
+          return { '$ref' => schema_config['$ref'] } if schema_config['$ref']
 
           # Otherwise, build the schema directly
           schema = {}
@@ -130,13 +126,11 @@ module GrapeSwagger
         # @param items [Hash] Items configuration
         # @param version [GrapeSwagger::OpenAPI::Version] The OpenAPI version
         # @return [Hash] Translated items
-        def translate_items(items, version)
+        def translate_items(items, _version)
           return items unless items
 
           # If items has a $ref, return it with proper key format
-          if items['$ref']
-            return { '$ref' => items['$ref'] }
-          end
+          return { '$ref' => items['$ref'] } if items['$ref']
 
           items
         end

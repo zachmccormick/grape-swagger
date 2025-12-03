@@ -10,10 +10,10 @@ require 'grape-swagger-entity'
 api_path = Rails.root.join('app', 'api')
 
 # Load entities first
-Dir[api_path.join('v1', 'entities', '*.rb')].sort.each { |f| require f }
+Dir[api_path.join('v1', 'entities', '*.rb')].each { |f| require f }
 
 # Load API endpoints
-Dir[api_path.join('v1', '*_api.rb')].sort.each { |f| require f }
+Dir[api_path.join('v1', '*_api.rb')].each { |f| require f }
 
 # Load root API last
 require api_path.join('api', 'root.rb')
