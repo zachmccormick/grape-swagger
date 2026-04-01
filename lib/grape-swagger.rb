@@ -14,6 +14,7 @@ require 'grape-swagger/request_param_parser_registry'
 require 'grape-swagger/token_owner_resolver'
 
 require 'grape-swagger/openapi/version_constants'
+require 'grape-swagger/openapi/errors'
 
 module GrapeSwagger
   class << self
