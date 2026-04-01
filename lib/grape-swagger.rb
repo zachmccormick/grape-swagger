@@ -16,6 +16,7 @@ require 'grape-swagger/token_owner_resolver'
 require 'grape-swagger/openapi/version_constants'
 require 'grape-swagger/openapi/errors'
 require 'grape-swagger/openapi/version'
+require 'grape-swagger/openapi/version_selector'
 
 module GrapeSwagger
   class << self
