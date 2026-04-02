@@ -37,6 +37,7 @@ module GrapeSwagger
           document_additional_properties(definitions, settings) unless value_type[:is_array]
           document_add_extensions(settings)
           document_example(settings)
+          document_examples(settings)
           document_deprecated(settings)
           document_read_write_only(settings)
           document_title(settings)
@@ -170,6 +171,12 @@ module GrapeSwagger
 
           key = @parsed_param[:in] == 'body' ? :example : :'x-example'
           @parsed_param[key] = settings[:example]
+        end
+
+        def document_examples(settings)
+          return unless settings.key?(:examples)
+
+          @parsed_param[:examples] = settings[:examples]
         end
 
         def document_deprecated(settings)
