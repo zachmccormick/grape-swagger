@@ -116,9 +116,14 @@ module GrapeSwagger
       if options[:tags]
         names = options[:tags].map { |t| t[:name] }
         tags.reject! { |t| names.include?(t[:name]) }
-        # Normalize tag objects (convert snake_case to camelCase)
-        normalized_tags = options[:tags].map { |t| normalize_tag(t) }
-        tags += normalized_tags
+
+        custom_tags = if options[:openapi_version]&.start_with?('3.')
+                        # Normalize tag objects for OpenAPI 3.x (convert snake_case to camelCase)
+                        options[:tags].map { |t| normalize_tag(t) }
+                      else
+                        options[:tags]
+                      end
+        tags += custom_tags
       end
 
       tags
@@ -126,7 +131,6 @@ module GrapeSwagger
 
     def self.normalize_tag(tag)
       result = tag.dup
-      # Convert external_docs to externalDocs
       if result.key?(:external_docs) && !result.key?(:externalDocs)
         result[:externalDocs] = result.delete(:external_docs)
       end

@@ -239,11 +239,30 @@ describe GrapeSwagger::DocMethods do
       end
     end
 
-    context 'tag normalization' do
+    context 'tag normalization for Swagger 2.0' do
       let(:swagger_object) { { swagger: '2.0', info: { title: 'Test' } } }
 
-      it 'normalizes custom tags with external_docs' do
+      it 'does NOT normalize tags (preserves external_docs)' do
         options = {
+          tags: [
+            { name: 'pets', external_docs: { url: 'http://example.com/pets' } }
+          ]
+        }
+        result = described_class.output_path_definitions(
+          { pets: [] }, endpoint, target_class, options
+        )
+        tag = result[:tags].find { |t| t[:name] == 'pets' }
+        expect(tag[:external_docs]).to eq({ url: 'http://example.com/pets' })
+        expect(tag).not_to have_key(:externalDocs)
+      end
+    end
+
+    context 'tag normalization for OpenAPI 3.x' do
+      let(:swagger_object) { { openapi: '3.1.0', info: { title: 'Test' } } }
+
+      it 'normalizes tags (converts external_docs to externalDocs)' do
+        options = {
+          openapi_version: '3.1.0',
           tags: [
             { name: 'pets', external_docs: { url: 'http://example.com/pets' } }
           ]
