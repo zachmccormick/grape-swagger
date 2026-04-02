@@ -54,9 +54,60 @@ module GrapeSwagger
 
       output[:tags]        = tags unless tags.empty? || paths.blank?
       output[:paths]       = paths unless paths.blank?
-      output[:definitions] = definitions unless definitions.blank?
+
+      # For OpenAPI 3.x, place schemas in components/schemas instead of definitions
+      if output[:openapi]&.start_with?('3.')
+        unless definitions.blank?
+          output[:components] ||= {}
+          output[:components][:schemas] = definitions
+        end
+        # Transform all $ref paths from #/definitions/ to #/components/schemas/
+        transform_definition_refs!(output)
+        # Transform type: file to type: string, format: binary
+        transform_file_types!(output)
+      else
+        output[:definitions] = definitions unless definitions.blank?
+      end
 
       output
+    end
+
+    # Recursively transform all $ref paths from #/definitions/ to #/components/schemas/
+    def self.transform_definition_refs!(obj)
+      case obj
+      when Hash
+        obj.each do |key, value|
+          if key == '$ref' && value.is_a?(String) && value.start_with?('#/definitions/')
+            obj[key] = value.sub('#/definitions/', '#/components/schemas/')
+          else
+            transform_definition_refs!(value)
+          end
+        end
+      when Array
+        obj.each { |item| transform_definition_refs!(item) }
+      end
+    end
+
+    # Recursively transform type: file to type: string, format: binary for OpenAPI 3.x
+    def self.transform_file_types!(obj)
+      case obj
+      when Hash
+        # Handle both symbol and string keys
+        type_key = if obj.key?(:type)
+                     :type
+                   else
+                     (obj.key?('type') ? 'type' : nil)
+                   end
+        if type_key && obj[type_key] == 'file'
+          obj[type_key] = 'string'
+          # Use same key style (symbol vs string) as the type key
+          format_key = type_key.is_a?(Symbol) ? :format : 'format'
+          obj[format_key] = 'binary'
+        end
+        obj.each_value { |value| transform_file_types!(value) }
+      when Array
+        obj.each { |item| transform_file_types!(item) }
+      end
     end
 
     def self.tags_from(paths, options)
@@ -65,10 +116,25 @@ module GrapeSwagger
       if options[:tags]
         names = options[:tags].map { |t| t[:name] }
         tags.reject! { |t| names.include?(t[:name]) }
-        tags += options[:tags]
+
+        custom_tags = if options[:openapi_version]&.start_with?('3.')
+                        # Normalize tag objects for OpenAPI 3.x (convert snake_case to camelCase)
+                        options[:tags].map { |t| normalize_tag(t) }
+                      else
+                        options[:tags]
+                      end
+        tags += custom_tags
       end
 
       tags
+    end
+
+    def self.normalize_tag(tag)
+      result = tag.dup
+      if result.key?(:external_docs) && !result.key?(:externalDocs)
+        result[:externalDocs] = result.delete(:external_docs)
+      end
+      result
     end
 
     def hide_documentation_path
