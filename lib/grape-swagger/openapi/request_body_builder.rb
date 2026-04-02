@@ -235,6 +235,13 @@ module GrapeSwagger
           prop_schema[:maxItems] = param[:maxItems] if param[:maxItems]
           prop_schema[:uniqueItems] = param[:uniqueItems] if param[:uniqueItems]
 
+          # Add numeric validation properties if present
+          prop_schema[:minimum] = param[:minimum] if param[:minimum]
+          prop_schema[:maximum] = param[:maximum] if param[:maximum]
+          prop_schema[:exclusiveMinimum] = param[:exclusiveMinimum] if param[:exclusiveMinimum]
+          prop_schema[:exclusiveMaximum] = param[:exclusiveMaximum] if param[:exclusiveMaximum]
+          prop_schema[:multipleOf] = param[:multipleOf] if param[:multipleOf]
+
           # Phase 6 schema field enhancements
 
           # Add title if present (OpenAPI 3.1.0 / JSON Schema feature)
