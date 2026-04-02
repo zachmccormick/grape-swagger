@@ -26,6 +26,7 @@ module GrapeSwagger
           document_range_values(settings) unless value_type[:is_array]
           document_required(settings)
           document_length_limits(value_type)
+          document_numeric_validation(value_type)
           document_additional_properties(definitions, settings) unless value_type[:is_array]
           document_add_extensions(settings)
           document_example(settings)
@@ -170,10 +171,17 @@ module GrapeSwagger
           if value_type[:is_array]
             @parsed_param[:minItems] = value_type[:min_length] if value_type.key?(:min_length)
             @parsed_param[:maxItems] = value_type[:max_length] if value_type.key?(:max_length)
+            @parsed_param[:uniqueItems] = value_type[:unique_items] if value_type.key?(:unique_items)
           else
             @parsed_param[:minLength] = value_type[:min_length] if value_type.key?(:min_length)
             @parsed_param[:maxLength] = value_type[:max_length] if value_type.key?(:max_length)
           end
+        end
+
+        def document_numeric_validation(value_type)
+          @parsed_param[:exclusiveMinimum] = value_type[:exclusive_minimum] if value_type.key?(:exclusive_minimum)
+          @parsed_param[:exclusiveMaximum] = value_type[:exclusive_maximum] if value_type.key?(:exclusive_maximum)
+          @parsed_param[:multipleOf] = value_type[:multiple_of] if value_type.key?(:multiple_of)
         end
 
         def parse_enum_or_range_values(values)
@@ -181,7 +189,7 @@ module GrapeSwagger
           when Proc
             parse_enum_or_range_values(values.call) if values.parameters.empty?
           when Range
-            parse_range_values(values) if values.first.is_a?(Integer)
+            parse_range_values(values) if values.first.is_a?(Numeric)
           when Array
             { enum: values }
           else
@@ -190,7 +198,17 @@ module GrapeSwagger
         end
 
         def parse_range_values(values)
-          { minimum: values.begin, maximum: values.end }.compact
+          result = { minimum: values.begin }
+
+          if values.exclude_end?
+            # Exclusive end range (0...1.0) -> exclusiveMaximum
+            result[:exclusiveMaximum] = values.end
+          else
+            # Inclusive range (0..1.0) -> maximum
+            result[:maximum] = values.end
+          end
+
+          result.compact
         end
       end
     end
