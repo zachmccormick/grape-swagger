@@ -17,6 +17,11 @@ require 'grape-swagger/openapi/version_constants'
 require 'grape-swagger/openapi/errors'
 require 'grape-swagger/openapi/version'
 require 'grape-swagger/openapi/version_selector'
+require 'grape-swagger/openapi/info_builder'
+require 'grape-swagger/openapi/servers_builder'
+require 'grape-swagger/openapi/schema_resolver'
+require 'grape-swagger/openapi/components_builder'
+require 'grape-swagger/openapi/spec_builder_v3_1'
 
 module GrapeSwagger
   class << self
