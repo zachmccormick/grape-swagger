@@ -48,6 +48,7 @@ require 'grape-swagger/reusable_parameter'
 require 'grape-swagger/reusable_response'
 require 'grape-swagger/reusable_header'
 require 'grape-swagger/reusable_example'
+require 'grape-swagger/reusable_request_body'
 require 'grape-swagger/endpoint/params_extensions'
 
 module GrapeSwagger
