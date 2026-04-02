@@ -39,6 +39,7 @@ require 'grape-swagger/openapi/discriminator_builder'
 require 'grape-swagger/openapi/polymorphic_schema_builder'
 require 'grape-swagger/openapi/discriminator_transformer'
 require 'grape-swagger/openapi/conditional_schema_builder'
+require 'grape-swagger/openapi/dependent_schema_handler'
 require 'grape-swagger/openapi/spec_builder_v3_1'
 
 module GrapeSwagger
