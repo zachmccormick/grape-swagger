@@ -18,6 +18,7 @@ require 'grape-swagger/openapi/errors'
 require 'grape-swagger/openapi/version'
 require 'grape-swagger/openapi/version_selector'
 require 'grape-swagger/openapi/info_builder'
+require 'grape-swagger/openapi/servers_builder'
 
 module GrapeSwagger
   class << self
