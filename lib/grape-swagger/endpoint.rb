@@ -15,6 +15,7 @@ require_relative 'openapi/nullable_type_handler'
 require_relative 'openapi/binary_data_encoder'
 require_relative 'openapi/request_body_builder'
 require_relative 'openapi/response_content_builder'
+require_relative 'openapi/parameter_schema_wrapper'
 
 module Grape
   class Endpoint # rubocop:disable Metrics/ClassLength
@@ -139,6 +140,9 @@ module Grape
       # For OpenAPI 3.1.0, build requestBody from body parameters
       apply_request_body!(method, route, options)
 
+      # For OpenAPI 3.1.0, wrap remaining parameter schemas
+      apply_parameter_schema_wrapping!(method, options)
+
       # For OpenAPI 3.1.0, wrap response schemas in content objects
       apply_response_content!(method, options)
 
@@ -172,6 +176,18 @@ module Grape
         # Remove body parameters from parameters array for OpenAPI 3.1.0
         method[:parameters] = method[:parameters].reject { |p| %w[body formData].include?(p[:in]) }
         method.delete(:parameters) if method[:parameters].empty?
+      end
+    end
+
+    # Applies parameter schema wrapping for OpenAPI 3.1.0
+    # Wraps remaining non-body parameter type/format/constraints into schema objects
+    def apply_parameter_schema_wrapping!(method, options)
+      version = detect_openapi_version(options)
+      return unless version&.openapi_3_1_0?
+      return unless method[:parameters].is_a?(Array)
+
+      method[:parameters] = method[:parameters].map do |param|
+        GrapeSwagger::OpenAPI::ParameterSchemaWrapper.wrap(param, version)
       end
     end
 
