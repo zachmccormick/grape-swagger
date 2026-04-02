@@ -6,7 +6,13 @@ module GrapeSwagger
       class << self
         def build(paths)
           paths.values.each_with_object([]) do |path, memo|
-            tags = path.values.first[:tags]
+            # Skip path items that are $ref references (OpenAPI 3.1.0)
+            next if path.is_a?(Hash) && (path.key?('$ref') || path.key?(:$ref))
+
+            first_operation = path.values.first
+            next unless first_operation.is_a?(Hash)
+
+            tags = first_operation[:tags]
             next if tags.nil?
 
             case tags

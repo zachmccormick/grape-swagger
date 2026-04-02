@@ -13,6 +13,7 @@ module GrapeSwagger
         securitySchemes
         links
         callbacks
+        pathItems
       ].freeze
 
       def self.build(options)
