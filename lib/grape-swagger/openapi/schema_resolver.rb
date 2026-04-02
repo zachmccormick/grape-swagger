@@ -53,6 +53,9 @@ module GrapeSwagger
           ref_key = find_key(result, '$ref')
           result[ref_key] = translate_ref(result[ref_key], version) if ref_key
 
+          # Apply nullable and binary transformations to this node
+          result = apply_transformations(result, version)
+
           # Translate nested schemas
           translate_nested(result, version)
 
@@ -76,6 +79,17 @@ module GrapeSwagger
         end
 
         private
+
+        # Applies version-specific schema transformations
+        #
+        # @param schema [Hash] The schema to transform
+        # @param version [GrapeSwagger::OpenAPI::Version] The OpenAPI version
+        # @return [Hash] The transformed schema
+        def apply_transformations(schema, version)
+          result = NullableTypeHandler.transform(schema, version)
+          result = BinaryDataEncoder.encode(result, version) if result
+          result
+        end
 
         # Translates internal reference paths (without file part)
         #

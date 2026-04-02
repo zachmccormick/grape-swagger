@@ -65,6 +65,10 @@ module GrapeSwagger
         transform_definition_refs!(output)
         # Transform type: file to type: string, format: binary
         transform_file_types!(output)
+        # Transform nullable: true to type arrays for JSON Schema 2020-12
+        transform_nullable_types!(output)
+        # Transform format: binary/byte to contentEncoding for JSON Schema 2020-12
+        transform_binary_formats!(output)
       else
         output[:definitions] = definitions unless definitions.blank?
       end
@@ -107,6 +111,66 @@ module GrapeSwagger
         obj.each_value { |value| transform_file_types!(value) }
       when Array
         obj.each { |item| transform_file_types!(item) }
+      end
+    end
+
+    # Recursively transform nullable: true to type arrays for OpenAPI 3.1.0
+    def self.transform_nullable_types!(obj)
+      case obj
+      when Hash
+        # Handle both symbol and string keys
+        nullable_key = if obj.key?(:nullable)
+                         :nullable
+                       else
+                         (obj.key?('nullable') ? 'nullable' : nil)
+                       end
+        if nullable_key && obj[nullable_key] == true
+          type_key = if obj.key?(:type)
+                       :type
+                     else
+                       (obj.key?('type') ? 'type' : nil)
+                     end
+          if type_key
+            types = Array(obj[type_key])
+            types << 'null' unless types.include?('null')
+            obj[type_key] = types.uniq
+          end
+          obj.delete(nullable_key)
+        end
+        obj.each_value { |value| transform_nullable_types!(value) }
+      when Array
+        obj.each { |item| transform_nullable_types!(item) }
+      end
+    end
+
+    # Recursively transform format: binary/byte to contentEncoding for OpenAPI 3.1.0
+    def self.transform_binary_formats!(obj)
+      case obj
+      when Hash
+        format_key = if obj.key?(:format)
+                       :format
+                     else
+                       (obj.key?('format') ? 'format' : nil)
+                     end
+        if format_key
+          format_val = obj[format_key]
+          encoding = GrapeSwagger::OpenAPI::BinaryDataEncoder::BINARY_ENCODINGS[format_val]
+          if encoding
+            obj.delete(format_key)
+            # Use same key style (symbol vs string) as the format key
+            encoding.each do |k, v|
+              key = format_key.is_a?(Symbol) ? k : k.to_s
+              # Preserve custom contentMediaType if already present
+              media_key = format_key.is_a?(Symbol) ? :contentMediaType : 'contentMediaType'
+              next if k == :contentMediaType && obj[media_key]
+
+              obj[key] = v
+            end
+          end
+        end
+        obj.each_value { |value| transform_binary_formats!(value) }
+      when Array
+        obj.each { |item| transform_binary_formats!(item) }
       end
     end
 
