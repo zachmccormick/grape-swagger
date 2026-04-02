@@ -41,6 +41,7 @@ require 'grape-swagger/openapi/discriminator_transformer'
 require 'grape-swagger/openapi/conditional_schema_builder'
 require 'grape-swagger/openapi/dependent_schema_handler'
 require 'grape-swagger/openapi/additional_properties_handler'
+require 'grape-swagger/openapi/reference_cache'
 require 'grape-swagger/openapi/spec_builder_v3_1'
 
 require 'grape-swagger/components_registry'
