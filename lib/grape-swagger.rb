@@ -23,6 +23,8 @@ require 'grape-swagger/openapi/schema_resolver'
 require 'grape-swagger/openapi/components_builder'
 require 'grape-swagger/openapi/reference_validator'
 require 'grape-swagger/openapi/type_mapper'
+require 'grape-swagger/openapi/nullable_type_handler'
+require 'grape-swagger/openapi/binary_data_encoder'
 require 'grape-swagger/openapi/spec_builder_v3_1'
 
 module GrapeSwagger
