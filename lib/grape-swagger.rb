@@ -43,6 +43,7 @@ require 'grape-swagger/openapi/dependent_schema_handler'
 require 'grape-swagger/openapi/additional_properties_handler'
 require 'grape-swagger/openapi/reference_cache'
 require 'grape-swagger/openapi/lazy_component_builder'
+require 'grape-swagger/openapi/benchmark_suite'
 require 'grape-swagger/openapi/spec_builder_v3_1'
 
 require 'grape-swagger/components_registry'
