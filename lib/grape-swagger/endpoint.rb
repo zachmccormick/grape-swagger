@@ -14,6 +14,7 @@ require_relative 'openapi/schema_resolver'
 require_relative 'openapi/nullable_type_handler'
 require_relative 'openapi/binary_data_encoder'
 require_relative 'openapi/request_body_builder'
+require_relative 'openapi/response_content_builder'
 
 module Grape
   class Endpoint # rubocop:disable Metrics/ClassLength
@@ -138,6 +139,9 @@ module Grape
       # For OpenAPI 3.1.0, build requestBody from body parameters
       apply_request_body!(method, route, options)
 
+      # For OpenAPI 3.1.0, wrap response schemas in content objects
+      apply_response_content!(method, options)
+
       method.delete_if { |_, value| value.nil? }
 
       [route.request_method.downcase.to_sym, method]
@@ -168,6 +172,22 @@ module Grape
         # Remove body parameters from parameters array for OpenAPI 3.1.0
         method[:parameters] = method[:parameters].reject { |p| %w[body formData].include?(p[:in]) }
         method.delete(:parameters) if method[:parameters].empty?
+      end
+    end
+
+    # Applies response content wrapping for OpenAPI 3.1.0
+    # Transforms each response via ResponseContentBuilder
+    def apply_response_content!(method, options)
+      version = detect_openapi_version(options)
+      return unless version&.openapi_3_1_0?
+      return unless method[:responses].is_a?(Hash)
+
+      method[:responses] = method[:responses].transform_values do |response|
+        GrapeSwagger::OpenAPI::ResponseContentBuilder.build(
+          response,
+          version,
+          method[:produces]
+        )
       end
     end
 
