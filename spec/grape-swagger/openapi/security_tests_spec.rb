@@ -72,19 +72,19 @@ describe 'Security Tests' do
     end
 
     it 'handles empty string as type mapper input' do
-      result = GrapeSwagger::OpenAPI::TypeMapper.map('', '3.1.0')
+      result = GrapeSwagger::OpenAPI::TypeMapper.map('')
 
       expect(result[:type]).to eq('string')
     end
 
     it 'handles special characters in type mapper input' do
-      result = GrapeSwagger::OpenAPI::TypeMapper.map('../../etc/passwd', '3.1.0')
+      result = GrapeSwagger::OpenAPI::TypeMapper.map('../../etc/passwd')
 
       expect(result[:type]).to eq('string')
     end
 
     it 'handles null bytes in type mapper input' do
-      result = GrapeSwagger::OpenAPI::TypeMapper.map("string\x00injection", '3.1.0')
+      result = GrapeSwagger::OpenAPI::TypeMapper.map("string\x00injection")
 
       expect(result[:type]).to eq('string')
     end
@@ -305,9 +305,8 @@ describe 'Security Tests' do
       expect(result[:mapping].keys.size).to eq(2)
     end
 
-    it 'handles integer version string in type mapper' do
-      # TypeMapper does string comparison, so non-string versions behave as 3.1.0
-      result = GrapeSwagger::OpenAPI::TypeMapper.map('integer', '3.1.0')
+    it 'TypeMapper maps integer correctly' do
+      result = GrapeSwagger::OpenAPI::TypeMapper.map('integer')
 
       expect(result[:type]).to eq('integer')
     end
@@ -432,7 +431,7 @@ describe 'Security Tests' do
 
     it 'TypeMapper raises on empty type array' do
       expect do
-        GrapeSwagger::OpenAPI::TypeMapper.map_with_type_array([], '3.1.0')
+        GrapeSwagger::OpenAPI::TypeMapper.map_with_type_array([])
       end.to raise_error(ArgumentError, 'Type array cannot be empty')
     end
   end

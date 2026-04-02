@@ -44,42 +44,36 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
   end
 
   describe 'type mapping consistency' do
-    it 'maps integer correctly for Swagger 2.0' do
-      result = GrapeSwagger::OpenAPI::TypeMapper.map('integer', '2.0')
-
+    it 'maps integer correctly for Swagger 2.0 via DataType' do
+      result = GrapeSwagger::DocMethods::DataType.mapping('integer')
       expect(result).to eq(%w[integer int32])
     end
 
-    it 'maps integer correctly for OpenAPI 3.1.0' do
-      result = GrapeSwagger::OpenAPI::TypeMapper.map('integer', '3.1.0')
-
+    it 'maps integer correctly for OpenAPI 3.1.0 via TypeMapper' do
+      result = GrapeSwagger::OpenAPI::TypeMapper.map('integer')
       expect(result[:type]).to eq('integer')
     end
 
     it 'maps string correctly for both versions' do
-      swagger_result = GrapeSwagger::OpenAPI::TypeMapper.map('string', '2.0')
-      openapi_result = GrapeSwagger::OpenAPI::TypeMapper.map('string', '3.1.0')
+      swagger_result = GrapeSwagger::DocMethods::DataType.mapping('string')
+      openapi_result = GrapeSwagger::OpenAPI::TypeMapper.map('string')
 
       expect(swagger_result).to eq('string')
       expect(openapi_result[:type]).to eq('string')
     end
 
-    it 'maps boolean correctly for both versions' do
-      swagger_result = GrapeSwagger::OpenAPI::TypeMapper.map('boolean', '2.0')
-      openapi_result = GrapeSwagger::OpenAPI::TypeMapper.map('boolean', '3.1.0')
-
-      expect(swagger_result).to eq('boolean')
-      expect(openapi_result[:type]).to eq('boolean')
+    it 'maps boolean correctly for OpenAPI 3.1.0' do
+      result = GrapeSwagger::OpenAPI::TypeMapper.map('boolean')
+      expect(result[:type]).to eq('boolean')
     end
 
-    it 'maps binary correctly for Swagger 2.0' do
-      result = GrapeSwagger::OpenAPI::TypeMapper.map('binary', '2.0')
-
+    it 'maps binary correctly for Swagger 2.0 via DataType' do
+      result = GrapeSwagger::DocMethods::DataType.mapping('binary')
       expect(result).to eq(%w[string binary])
     end
 
     it 'maps binary correctly for OpenAPI 3.1.0 with contentEncoding' do
-      result = GrapeSwagger::OpenAPI::TypeMapper.map('binary', '3.1.0')
+      result = GrapeSwagger::OpenAPI::TypeMapper.map('binary')
 
       expect(result[:type]).to eq('string')
       expect(result[:contentEncoding]).to eq('base64')
@@ -87,17 +81,11 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
     end
 
     it 'defaults unknown types to string for both versions' do
-      swagger_result = GrapeSwagger::OpenAPI::TypeMapper.map('unknown', '2.0')
-      openapi_result = GrapeSwagger::OpenAPI::TypeMapper.map('unknown', '3.1.0')
+      swagger_result = GrapeSwagger::DocMethods::DataType.mapping('unknown')
+      openapi_result = GrapeSwagger::OpenAPI::TypeMapper.map('unknown')
 
       expect(swagger_result).to eq('string')
       expect(openapi_result[:type]).to eq('string')
-    end
-
-    it 'defaults to OpenAPI 3.1.0 when no version specified' do
-      result = GrapeSwagger::OpenAPI::TypeMapper.map('integer')
-
-      expect(result).to eq({ type: 'integer' })
     end
   end
 
@@ -367,7 +355,7 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
 
   describe 'all builders handle nil input' do
     it 'TypeMapper handles nil by defaulting to string' do
-      result = GrapeSwagger::OpenAPI::TypeMapper.map(nil, '3.1.0')
+      result = GrapeSwagger::OpenAPI::TypeMapper.map(nil)
 
       expect(result).to be_a(Hash)
       expect(result[:type]).to eq('string')
