@@ -6,6 +6,14 @@ require_relative 'request_param_parsers/headers'
 require_relative 'request_param_parsers/route'
 require_relative 'request_param_parsers/body'
 require_relative 'token_owner_resolver'
+require_relative 'openapi/version_constants'
+require_relative 'openapi/errors'
+require_relative 'openapi/version'
+require_relative 'openapi/version_selector'
+require_relative 'openapi/schema_resolver'
+require_relative 'openapi/nullable_type_handler'
+require_relative 'openapi/binary_data_encoder'
+require_relative 'openapi/request_body_builder'
 
 module Grape
   class Endpoint # rubocop:disable Metrics/ClassLength
@@ -126,6 +134,10 @@ module Grape
       method[:tags]        = route.options.fetch(:tags, tag_object(route, path))
       method[:operationId] = GrapeSwagger::DocMethods::OperationId.build(route, path)
       method[:deprecated] = deprecated_object(route)
+
+      # For OpenAPI 3.1.0, build requestBody from body parameters
+      apply_request_body!(method, route, options)
+
       method.delete_if { |_, value| value.nil? }
 
       [route.request_method.downcase.to_sym, method]
@@ -133,6 +145,38 @@ module Grape
 
     def deprecated_object(route)
       route.options[:deprecated] if route.options.key?(:deprecated)
+    end
+
+    # Applies requestBody for OpenAPI 3.1.0 endpoints
+    # Extracts body params, builds requestBody, and removes body params from parameters
+    def apply_request_body!(method, route, options)
+      version = detect_openapi_version(options)
+      return unless version&.openapi_3_1_0?
+      return unless method[:parameters].is_a?(Array)
+
+      # Build requestBody from body parameters
+      request_body = GrapeSwagger::OpenAPI::RequestBodyBuilder.build(
+        method[:parameters],
+        route.request_method,
+        method[:consumes],
+        version
+      )
+
+      if request_body
+        method[:requestBody] = request_body
+
+        # Remove body parameters from parameters array for OpenAPI 3.1.0
+        method[:parameters] = method[:parameters].reject { |p| %w[body formData].include?(p[:in]) }
+        method.delete(:parameters) if method[:parameters].empty?
+      end
+    end
+
+    # Detect the OpenAPI version from options
+    # Returns nil for Swagger 2.0 (default behavior)
+    def detect_openapi_version(options)
+      GrapeSwagger::OpenAPI::VersionSelector.build_spec(options)
+    rescue StandardError
+      nil
     end
 
     def security_object(route)
