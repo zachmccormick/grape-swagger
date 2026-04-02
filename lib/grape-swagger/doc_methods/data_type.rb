@@ -83,8 +83,12 @@ module GrapeSwagger
           primitives << 'string'
         end
 
-        def mapping(value)
-          PRIMITIVE_MAPPINGS[value] || 'string'
+        def mapping(value, version = nil)
+          if version == '3.1.0'
+            GrapeSwagger::OpenAPI::TypeMapper.map(value)
+          else
+            PRIMITIVE_MAPPINGS[value] || 'string'
+          end
         end
 
         def collections
