@@ -2,6 +2,7 @@
 
 require_relative 'schema_resolver'
 require_relative 'header_builder'
+require_relative 'content_negotiator'
 
 module GrapeSwagger
   module OpenAPI
@@ -40,6 +41,7 @@ module GrapeSwagger
         private
 
         # Build the content object with media types
+        # Uses ContentNegotiator for media type prioritization
         #
         # @param response [Hash] Response definition
         # @param produces [Array<String>] Media types
@@ -53,7 +55,8 @@ module GrapeSwagger
           media_types = if produces.nil? || produces.empty?
                           ['application/json']
                         else
-                          produces
+                          negotiated = ContentNegotiator.negotiate(nil, produces)
+                          negotiated[:response_types]
                         end
 
           media_types.each_with_object({}) do |media_type, content|
