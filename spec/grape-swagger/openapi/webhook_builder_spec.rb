@@ -344,5 +344,61 @@ describe GrapeSwagger::OpenAPI::WebhookBuilder do
         expect(result['user_signup'][:post][:requestBody][:required]).to be false
       end
     end
+
+    context 'custom content types' do
+      it 'uses content_type from request config' do
+        webhook_definitions = {
+          file_upload: {
+            summary: 'File uploaded',
+            request: {
+              content_type: 'application/xml',
+              schema: { '$ref' => '#/components/schemas/FileEvent' }
+            },
+            responses: { 200 => { description: 'OK' } }
+          }
+        }
+
+        result = described_class.build(webhook_definitions, version_3_1_0)
+
+        content = result['file_upload'][:post][:requestBody][:content]
+        expect(content).to have_key('application/xml')
+        expect(content).not_to have_key('application/json')
+      end
+
+      it 'uses content_type from response config' do
+        webhook_definitions = {
+          event: {
+            request: { schema: { type: 'object' } },
+            responses: {
+              200 => {
+                description: 'OK',
+                content_type: 'text/plain',
+                schema: { type: 'string' }
+              }
+            }
+          }
+        }
+
+        result = described_class.build(webhook_definitions, version_3_1_0)
+
+        response_content = result['event'][:post][:responses]['200'][:content]
+        expect(response_content).to have_key('text/plain')
+        expect(response_content).not_to have_key('application/json')
+      end
+
+      it 'defaults to application/json when no content_type specified' do
+        webhook_definitions = {
+          event: {
+            request: { schema: { type: 'object' } },
+            responses: { 200 => { description: 'OK' } }
+          }
+        }
+
+        result = described_class.build(webhook_definitions, version_3_1_0)
+
+        content = result['event'][:post][:requestBody][:content]
+        expect(content).to have_key('application/json')
+      end
+    end
   end
 end
