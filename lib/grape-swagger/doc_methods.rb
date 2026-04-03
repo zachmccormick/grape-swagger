@@ -65,6 +65,11 @@ module GrapeSwagger
         transform_definition_refs!(output)
         # Transform type: file to type: string, format: binary
         transform_file_types!(output)
+        # Transform Swagger 2.0 style discriminators to OpenAPI 3.1.0 Discriminator Objects
+        if output[:components] && output[:components][:schemas]
+          version = GrapeSwagger::OpenAPI::Version.new(output[:openapi])
+          GrapeSwagger::OpenAPI::DiscriminatorTransformer.transform(output[:components][:schemas], version)
+        end
         # Transform nullable: true to type arrays for JSON Schema 2020-12
         transform_nullable_types!(output)
         # Transform format: binary/byte to contentEncoding for JSON Schema 2020-12
