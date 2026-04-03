@@ -626,7 +626,15 @@ module Grape
 
     def success_code?(code)
       status = code.is_a?(Array) ? code.first : code[:code]
-      status.between?(200, 299)
+      return true if wildcard_status_code?(status) && status.to_s =~ /\A2/i
+
+      status.is_a?(Integer) && status.between?(200, 299)
+    end
+
+    def wildcard_status_code?(code)
+      return false unless code.is_a?(String)
+
+      code.match?(/\A[1-5][Xx]{2}\z/) || code == 'default'
     end
 
     def http_codes_from_route(route)
@@ -660,6 +668,15 @@ module Grape
     end
 
     private
+
+    # Checks if a status code represents a success or default response
+    # for the purpose of deciding whether to apply is_array wrapping
+    def success_or_default_code?(code)
+      return true if code == 'default'
+      return true if wildcard_status_code?(code) && code.to_s =~ /\A2/i
+
+      code.is_a?(Integer) && code < 300
+    end
 
     def default_code_from_route(route)
       entity = route.options[:default_response]
@@ -735,7 +752,7 @@ module Grape
                   else
                     build_reference_hash(response_model)
                   end
-      return reference unless value[:code] == 'default' || value[:code] < 300
+      return reference unless success_or_default_code?(value[:code])
 
       if value.key?(:as) && value.key?(:is_array)
         reference[value[:as]] = build_reference_array(reference[value[:as]])
