@@ -88,6 +88,8 @@ module GrapeSwagger
         def apply_transformations(schema, version)
           result = NullableTypeHandler.transform(schema, version)
           result = BinaryDataEncoder.encode(result, version) if result
+          result = ConditionalSchemaBuilder.build(result, version) if result
+          result = DependentSchemaHandler.transform(result, version) if result
           result
         end
 
