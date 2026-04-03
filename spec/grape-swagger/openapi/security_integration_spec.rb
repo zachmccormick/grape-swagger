@@ -209,7 +209,7 @@ describe 'Security Scheme Integration' do
   end
 end
 
-describe 'Security Scheme Swagger 2.0 Compatibility' do
+describe 'Security Scheme Swagger 2.0 Passthrough' do
   def app
     Class.new(Grape::API) do
       format :json
@@ -224,29 +224,20 @@ describe 'Security Scheme Swagger 2.0 Compatibility' do
         { message: 'api_key' }
       end
 
+      # Swagger 2.0 users pass security definitions in Swagger 2.0 format directly
       add_swagger_documentation(
         security_definitions: {
           oauth2: {
             type: 'oauth2',
-            flows: {
-              authorizationCode: {
-                authorization_url: 'https://auth.example.com/authorize',
-                token_url: 'https://auth.example.com/token',
-                scopes: { 'read' => 'Read access' }
-              }
-            }
+            flow: 'accessCode',
+            authorizationUrl: 'https://auth.example.com/authorize',
+            tokenUrl: 'https://auth.example.com/token',
+            scopes: { 'read' => 'Read access' }
           },
           api_key: {
             type: 'apiKey',
             name: 'X-API-Key',
             in: 'header'
-          },
-          openId: {
-            type: 'openIdConnect',
-            openid_connect_url: 'https://auth.example.com/.well-known/openid-configuration'
-          },
-          mtls: {
-            type: 'mutualTLS'
           }
         }
       )
@@ -262,32 +253,23 @@ describe 'Security Scheme Swagger 2.0 Compatibility' do
     expect(subject['swagger']).to eq('2.0')
   end
 
-  describe 'security definitions' do
+  describe 'security definitions are passed through as-is' do
     let(:security_defs) { subject['securityDefinitions'] }
 
-    it 'converts OAuth2 to Swagger 2.0 format' do
+    it 'preserves OAuth2 in Swagger 2.0 format' do
       oauth2 = security_defs['oauth2']
       expect(oauth2['type']).to eq('oauth2')
       expect(oauth2['flow']).to eq('accessCode')
       expect(oauth2['authorizationUrl']).to eq('https://auth.example.com/authorize')
       expect(oauth2['tokenUrl']).to eq('https://auth.example.com/token')
       expect(oauth2['scopes']).to eq({ 'read' => 'Read access' })
-      expect(oauth2['flows']).to be_nil
     end
 
-    it 'includes API key scheme' do
+    it 'preserves API key scheme' do
       api_key = security_defs['api_key']
       expect(api_key['type']).to eq('apiKey')
       expect(api_key['name']).to eq('X-API-Key')
       expect(api_key['in']).to eq('header')
-    end
-
-    it 'filters out OpenID Connect (not supported in Swagger 2.0)' do
-      expect(security_defs).not_to have_key('openId')
-    end
-
-    it 'filters out Mutual TLS (not supported in Swagger 2.0)' do
-      expect(security_defs).not_to have_key('mtls')
     end
   end
 end
