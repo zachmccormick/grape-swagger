@@ -154,11 +154,22 @@ module Grape
         next if hidden?(route, options)
 
         @item, path = GrapeSwagger::DocMethods::PathString.build(route, options)
+
+        # Check for path_ref route setting (OpenAPI 3.1.0 reusable path items)
+        path_ref = route.settings.dig(:path_ref)
+        if path_ref && !@paths.key?(path.to_s)
+          @paths[path.to_s] = { '$ref' => "#/components/pathItems/#{path_ref}" }
+          next
+        end
+
         @entity = route.entity || route.options[:success]
 
         verb, method_object = method_object(route, options, path)
 
         if @paths.key?(path.to_s)
+          # Don't add operations to a $ref path
+          next if @paths[path.to_s].key?('$ref')
+
           @paths[path.to_s][verb] = method_object
         else
           @paths[path.to_s] = { verb => method_object }
