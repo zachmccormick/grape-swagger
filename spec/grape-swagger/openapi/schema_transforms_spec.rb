@@ -220,7 +220,10 @@ describe GrapeSwagger::DocMethods do
         )
         param = result[:paths]['/upload'][:post][:parameters][0]
         expect(param[:type]).to eq('string')
-        expect(param[:format]).to eq('binary')
+        # In OpenAPI 3.1.0, format: binary is further transformed to contentEncoding
+        expect(param[:contentEncoding]).to eq('base64')
+        expect(param[:contentMediaType]).to eq('application/octet-stream')
+        expect(param).not_to have_key(:format)
       end
 
       it 'preserves existing components' do
