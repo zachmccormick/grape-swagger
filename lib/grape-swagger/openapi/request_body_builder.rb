@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
+require_relative 'content_negotiator'
+
 module GrapeSwagger
   module OpenAPI
     class RequestBodyBuilder
       # HTTP methods that support request bodies
       BODY_METHODS = %w[POST PUT PATCH].freeze
 
-      # Default content type until ContentNegotiator is added in PR 10
+      # Default content type
       DEFAULT_CONTENT_TYPE = 'application/json'
 
       class << self
@@ -59,13 +61,14 @@ module GrapeSwagger
         end
 
         # Resolve content types from consumes array
-        # For now, uses simplified logic; PR 10 adds ContentNegotiator
+        # Uses ContentNegotiator for prioritization when multiple types are present
         #
         # @param consumes [Array<String>, nil] Media types from consumes
         # @return [Array<String>] Resolved content types
         def resolve_content_types(consumes)
           if consumes.is_a?(Array) && consumes.any?
-            consumes
+            negotiated = ContentNegotiator.negotiate(consumes, nil)
+            negotiated[:request_types]
           else
             [DEFAULT_CONTENT_TYPE]
           end
