@@ -16,6 +16,8 @@ require_relative 'openapi/binary_data_encoder'
 require_relative 'openapi/request_body_builder'
 require_relative 'openapi/response_content_builder'
 require_relative 'openapi/parameter_schema_wrapper'
+require_relative 'openapi/callback_builder'
+require_relative 'openapi/link_builder'
 
 module Grape
   class Endpoint # rubocop:disable Metrics/ClassLength
@@ -188,6 +190,12 @@ module Grape
       # For OpenAPI 3.1.0, wrap response schemas in content objects
       apply_response_content!(method, options)
 
+      # For OpenAPI 3.1.0, add callbacks if present in route options
+      apply_callbacks!(method, route, options)
+
+      # For OpenAPI 3.1.0, add links to responses if present in route options
+      apply_links!(method, route, options)
+
       method.delete_if { |_, value| value.nil? }
 
       [route.request_method.downcase.to_sym, method]
@@ -246,6 +254,35 @@ module Grape
           version,
           method[:produces]
         )
+      end
+    end
+
+    # Applies callbacks for OpenAPI 3.1.0 endpoints
+    # Reads callback definitions from route options and builds callbacks object
+    def apply_callbacks!(method, route, options)
+      version = detect_openapi_version(options)
+      return unless version&.openapi_3_1_0?
+      return unless route.options[:callbacks]
+
+      callbacks = GrapeSwagger::OpenAPI::CallbackBuilder.build(route.options[:callbacks], version)
+      method[:callbacks] = callbacks if callbacks
+    end
+
+    # Applies links for OpenAPI 3.1.0 endpoints
+    # Reads link definitions from route options and attaches to corresponding responses
+    def apply_links!(method, route, options)
+      version = detect_openapi_version(options)
+      return unless version&.openapi_3_1_0?
+      return unless route.options[:links]
+      return unless method[:responses].is_a?(Hash)
+
+      route.options[:links].each do |status_code, links_for_status|
+        # Check both integer and string keys for the status code
+        response_key = method[:responses].key?(status_code) ? status_code : status_code.to_s
+        next unless method[:responses][response_key]
+
+        built_links = GrapeSwagger::OpenAPI::LinkBuilder.build(links_for_status, version)
+        method[:responses][response_key][:links] = built_links if built_links
       end
     end
 
