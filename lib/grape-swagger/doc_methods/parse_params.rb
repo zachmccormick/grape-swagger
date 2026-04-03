@@ -8,6 +8,13 @@ module GrapeSwagger
           method = route.request_method
           additional_documentation = settings.fetch(:documentation, {})
           settings.merge!(additional_documentation)
+
+          # Support $ref to component parameters (OpenAPI 3.1.0 feature)
+          # Usage: documentation: { ref: '#/components/parameters/PageParam' }
+          # OpenAPI 3.1.0 allows summary and description overrides on $ref
+          # Usage: documentation: { ref: '...', ref_summary: 'Override', ref_description: 'Override' }
+          return build_reference_object(settings) if settings[:ref]
+
           data_type = DataType.call(settings)
 
           value_type = settings.merge(data_type: data_type, path: path, param_name: param, method: method)
@@ -30,11 +37,29 @@ module GrapeSwagger
           document_additional_properties(definitions, settings) unless value_type[:is_array]
           document_add_extensions(settings)
           document_example(settings)
+          document_examples(settings)
+          document_deprecated(settings)
+          document_read_write_only(settings)
+          document_title(settings)
+          document_not_constraint(settings)
+          document_object_constraints(settings)
+          document_external_docs(settings)
+          document_content(settings)
 
           @parsed_param
         end
 
         private
+
+        def build_reference_object(settings)
+          ref_object = { '$ref' => settings[:ref] }
+
+          # OpenAPI 3.1.0 allows summary and description overrides on Reference Objects
+          ref_object[:summary] = settings[:ref_summary] if settings.key?(:ref_summary)
+          ref_object[:description] = settings[:ref_description] if settings.key?(:ref_description)
+
+          ref_object
+        end
 
         def document_description(settings)
           description = settings[:desc] || settings[:description]
@@ -146,6 +171,92 @@ module GrapeSwagger
 
           key = @parsed_param[:in] == 'body' ? :example : :'x-example'
           @parsed_param[key] = settings[:example]
+        end
+
+        def document_examples(settings)
+          return unless settings.key?(:examples)
+
+          @parsed_param[:examples] = settings[:examples]
+        end
+
+        def document_deprecated(settings)
+          @parsed_param[:deprecated] = settings[:deprecated] if settings.key?(:deprecated)
+        end
+
+        def document_read_write_only(settings)
+          @parsed_param[:readOnly] = settings[:read_only] if settings.key?(:read_only)
+          @parsed_param[:writeOnly] = settings[:write_only] if settings.key?(:write_only)
+        end
+
+        def document_title(settings)
+          @parsed_param[:title] = settings[:title] if settings.key?(:title)
+        end
+
+        def document_not_constraint(settings)
+          return unless settings.key?(:not)
+
+          not_schema = settings[:not]
+          @parsed_param[:not] = normalize_not_schema(not_schema)
+        end
+
+        def normalize_not_schema(schema)
+          case schema
+          when String
+            # Reference to a schema component
+            { '$ref' => "#/components/schemas/#{schema}" }
+          when Symbol
+            # Reference to a schema component (symbol form)
+            { '$ref' => "#/components/schemas/#{schema}" }
+          when Hash
+            # Inline schema definition
+            schema.transform_keys(&:to_sym)
+          else
+            schema
+          end
+        end
+
+        def document_object_constraints(settings)
+          @parsed_param[:minProperties] = settings[:min_properties] if settings.key?(:min_properties)
+          @parsed_param[:maxProperties] = settings[:max_properties] if settings.key?(:max_properties)
+        end
+
+        def document_external_docs(settings)
+          return unless settings.key?(:external_docs)
+
+          external_docs = settings[:external_docs]
+          # Normalize to proper OpenAPI format
+          @parsed_param[:externalDocs] = normalize_external_docs(external_docs)
+        end
+
+        def normalize_external_docs(docs)
+          return docs if docs.is_a?(Hash) && docs.key?(:url)
+
+          # Allow shorthand: just a URL string
+          if docs.is_a?(String)
+            { url: docs }
+          else
+            docs
+          end
+        end
+
+        def document_content(settings)
+          return unless settings.key?(:content)
+
+          # content is an alternative to schema for complex parameter serialization
+          # It's a Map[string, Media Type Object] (e.g., 'application/json' => { schema: {...} })
+          # When content is present, schema fields should NOT be used
+          @parsed_param[:content] = normalize_content(settings[:content])
+        end
+
+        def normalize_content(content)
+          return content if content.is_a?(Hash) && content.values.all? { |v| v.is_a?(Hash) }
+
+          # Allow shorthand: just a schema hash assumes application/json
+          if content.is_a?(Hash) && content.key?(:type)
+            { 'application/json' => { schema: content } }
+          else
+            content
+          end
         end
 
         def param_type(value_type, consumes)
