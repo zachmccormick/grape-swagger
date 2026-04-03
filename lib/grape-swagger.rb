@@ -28,6 +28,7 @@ require 'grape-swagger/openapi/binary_data_encoder'
 require 'grape-swagger/openapi/header_builder'
 require 'grape-swagger/openapi/request_body_builder'
 require 'grape-swagger/openapi/response_content_builder'
+require 'grape-swagger/openapi/parameter_schema_wrapper'
 require 'grape-swagger/openapi/spec_builder_v3_1'
 
 module GrapeSwagger
