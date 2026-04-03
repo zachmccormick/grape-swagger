@@ -74,11 +74,28 @@ module GrapeSwagger
         transform_nullable_types!(output)
         # Transform format: binary/byte to contentEncoding for JSON Schema 2020-12
         transform_binary_formats!(output)
+        # Merge registered reusable components from ComponentsRegistry
+        merge_registered_components!(output)
       else
         output[:definitions] = definitions unless definitions.blank?
       end
 
       output
+    end
+
+    # Merge reusable components from ComponentsRegistry into the output
+    def self.merge_registered_components!(output)
+      registry_components = GrapeSwagger::ComponentsRegistry.to_openapi
+      return if registry_components.empty?
+
+      output[:components] ||= {}
+      registry_components.each do |key, value|
+        if output[:components][key]
+          output[:components][key] = output[:components][key].merge(value)
+        else
+          output[:components][key] = value
+        end
+      end
     end
 
     # Recursively transform all $ref paths from #/definitions/ to #/components/schemas/

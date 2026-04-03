@@ -43,6 +43,12 @@ require 'grape-swagger/openapi/dependent_schema_handler'
 require 'grape-swagger/openapi/additional_properties_handler'
 require 'grape-swagger/openapi/spec_builder_v3_1'
 
+require 'grape-swagger/components_registry'
+require 'grape-swagger/reusable_parameter'
+require 'grape-swagger/reusable_response'
+require 'grape-swagger/reusable_header'
+require 'grape-swagger/endpoint/params_extensions'
+
 module GrapeSwagger
   class << self
     def model_parsers

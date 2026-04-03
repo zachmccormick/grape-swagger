@@ -356,12 +356,29 @@ module Grape
 
       GrapeSwagger::DocMethods::FormatData.to_format(parameters)
 
+      # Inject $ref entries for parameter references
+      parameter_refs = route.settings.dig(:description, :parameter_refs) ||
+                       route.settings.dig(:parameter_refs)
+      if parameter_refs.is_a?(Array) && parameter_refs.any?
+        parameters ||= []
+        parameter_refs.each do |ref_name|
+          parameters.unshift({ '$ref' => "#/components/parameters/#{ref_name}" })
+        end
+      end
+
       parameters.presence
     end
 
     def response_object(route, options)
       codes(route).each_with_object({}) do |value, memo|
         value[:message] ||= ''
+
+        # Handle Symbol models as response component references
+        if value[:model].is_a?(Symbol) && response_component_registered?(value[:model])
+          memo[value[:code]] = { '$ref' => "#/components/responses/#{value[:model]}" }
+          next
+        end
+
         memo[value[:code]] = { description: value[:message] ||= '' } unless memo[value[:code]].present?
         memo[value[:code]][:headers] = value[:headers] if value[:headers]
 
@@ -603,6 +620,10 @@ module Grape
 
       token_owner = GrapeSwagger::TokenOwnerResolver.resolve(self, options[:token_owner])
       GrapeSwagger::TokenOwnerResolver.evaluate_proc(route_hidden, token_owner)
+    end
+
+    def response_component_registered?(name)
+      GrapeSwagger::ComponentsRegistry.responses.key?(name.to_s)
     end
 
     def hidden_parameter?(value)
