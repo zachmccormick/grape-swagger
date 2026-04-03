@@ -35,6 +35,16 @@ module Grape
     #
     # required keys for SwaggerObject
     def swagger_object(target_class, request, options)
+      version = detect_openapi_version(options)
+
+      if version&.openapi_3_1_0?
+        openapi_3_1_object(target_class, request, options, version)
+      else
+        swagger_2_0_object(target_class, request, options)
+      end
+    end
+
+    def swagger_2_0_object(target_class, request, options)
       object = {
         info: info_object(options[:info].merge(version: options[:doc_version])),
         swagger: '2.0',
@@ -50,6 +60,38 @@ module Grape
 
       GrapeSwagger::DocMethods::Extensions.add_extensions_to_root(options, object)
       object.delete_if { |_, value| value.blank? }
+    end
+
+    def openapi_3_1_object(target_class, request, options, version)
+      security_schemes = transform_security_definitions(options[:security_definitions])
+
+      object = {
+        info: info_object(options[:info].merge(version: options[:doc_version])),
+        openapi: '3.1.0',
+        security: options[:security],
+        host: GrapeSwagger::DocMethods::OptionalObject.build(:host, options, request),
+        basePath: GrapeSwagger::DocMethods::OptionalObject.build(:base_path, options, request),
+        schemes: options[:schemes].is_a?(String) ? [options[:schemes]] : options[:schemes]
+      }
+
+      # Add security schemes to components
+      if security_schemes && !security_schemes.empty?
+        object[:components] ||= {}
+        object[:components][:securitySchemes] = security_schemes
+      end
+
+      GrapeSwagger::DocMethods::Extensions.add_extensions_to_root(options, object)
+      object.delete_if { |_, value| value.blank? }
+    end
+
+    # Transform security definitions to OpenAPI 3.1.0 format using SecuritySchemeBuilder
+    def transform_security_definitions(security_definitions)
+      return nil if security_definitions.nil? || security_definitions.empty?
+
+      security_definitions.each_with_object({}) do |(name, config), result|
+        transformed = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config)
+        result[name] = transformed if transformed
+      end
     end
 
     # building info object

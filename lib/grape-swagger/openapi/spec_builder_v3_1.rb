@@ -3,6 +3,7 @@
 require_relative 'info_builder'
 require_relative 'servers_builder'
 require_relative 'components_builder'
+require_relative 'webhook_builder'
 
 module GrapeSwagger
   module OpenAPI
@@ -30,7 +31,12 @@ module GrapeSwagger
         spec[:security] = options[:security] if options[:security]
         spec[:tags] = options[:tags] if options[:tags]
         spec[:externalDocs] = options[:externalDocs] if options[:externalDocs]
-        spec[:webhooks] = options[:webhooks] if options[:webhooks]
+        # Build webhooks if present
+        if options[:webhooks]
+          version = Version.new('3.1.0')
+          webhooks = WebhookBuilder.build(options[:webhooks], version)
+          spec[:webhooks] = webhooks if webhooks
+        end
 
         spec
       end
