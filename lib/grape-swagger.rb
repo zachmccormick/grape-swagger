@@ -51,6 +51,7 @@ require 'grape-swagger/reusable_example'
 require 'grape-swagger/reusable_request_body'
 require 'grape-swagger/reusable_path_item'
 require 'grape-swagger/endpoint/params_extensions'
+require 'grape-swagger/endpoint/path_params_extension'
 
 module GrapeSwagger
   class << self
