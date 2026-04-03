@@ -31,7 +31,7 @@ module GrapeSwagger
         # Handle legacy securityDefinitions -> securitySchemes
         if options[:securityDefinitions] && !components[:securitySchemes]
           # Prefer explicit components.securitySchemes over legacy securityDefinitions
-          components[:securitySchemes] = transform_security_schemes(options[:securityDefinitions], version)
+          components[:securitySchemes] = transform_security_schemes(options[:securityDefinitions])
         end
 
         # Translate references if version is provided and it's OpenAPI 3.1.0
@@ -41,11 +41,9 @@ module GrapeSwagger
         components.select { |_key, value| value && !value.empty? }
       end
 
-      def self.transform_security_schemes(security_definitions, version)
-        return security_definitions.dup unless version && !version.swagger_2_0?
-
+      def self.transform_security_schemes(security_definitions)
         security_definitions.each_with_object({}) do |(name, config), result|
-          transformed = SecuritySchemeBuilder.build(config, version)
+          transformed = SecuritySchemeBuilder.build(config)
           result[name] = transformed if transformed
         end
       end
