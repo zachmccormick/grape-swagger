@@ -262,18 +262,10 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
   end
 
   describe 'discriminator compatibility' do
-    it 'returns simple string for Swagger 2.0' do
-      config = { property_name: 'type', mapping: { 'a' => 'A' } }
-
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_2_0)
-
-      expect(result).to eq('type')
-    end
-
     it 'returns full object for OpenAPI 3.1.0' do
       config = { property_name: 'type', mapping: { 'a' => 'A' } }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result).to be_a(Hash)
       expect(result[:propertyName]).to eq('type')
@@ -283,7 +275,7 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
     it 'normalizes mapping refs for OpenAPI 3.1.0' do
       config = { property_name: 'type', mapping: { 'dog' => 'Dog' } }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:mapping]['dog']).to eq('#/components/schemas/Dog')
     end
@@ -294,7 +286,7 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
         mapping: { 'cat' => '#/components/schemas/Cat' }
       }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:mapping]['cat']).to eq('#/components/schemas/Cat')
     end
@@ -340,13 +332,13 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
     end
 
     it 'DiscriminatorBuilder handles nil' do
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(nil, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(nil)
 
       expect(result).to be_nil
     end
 
     it 'DiscriminatorBuilder handles empty hash' do
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build({}, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build({})
 
       expect(result).to be_nil
     end

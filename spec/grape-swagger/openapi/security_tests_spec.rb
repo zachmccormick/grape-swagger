@@ -15,7 +15,7 @@ describe 'Security Tests' do
         }
       }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:mapping]).to have_key('test<script>')
       expect(result[:mapping]).to have_key("test'injection")
@@ -27,7 +27,7 @@ describe 'Security Tests' do
         mapping: { 'a' => 'A' }
       }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:propertyName]).to eq('<img onerror=alert(1)>')
     end
@@ -47,7 +47,7 @@ describe 'Security Tests' do
         mapping: { "\u{1F600}" => "Schema\u{2603}" }
       }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:mapping]).to have_key("\u{1F600}")
     end
@@ -65,7 +65,7 @@ describe 'Security Tests' do
       long_name = 'x' * 5_000
       config = { property_name: long_name }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:propertyName]).to eq(long_name)
     end
@@ -146,7 +146,7 @@ describe 'Security Tests' do
         }
       }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:mapping]['dog']).to eq('#/components/schemas/Dog')
       expect(result[:mapping]['cat']).to eq('#/components/schemas/Cat')
@@ -160,7 +160,7 @@ describe 'Security Tests' do
         }
       }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:mapping]['external']).to include('https://example.com')
     end
@@ -173,7 +173,7 @@ describe 'Security Tests' do
         }
       }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:mapping]['ext']).to start_with('http://')
     end
@@ -186,7 +186,7 @@ describe 'Security Tests' do
         }
       }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       # Non-http, non-# refs get normalized as component refs
       expect(result[:mapping]['traversal']).to eq('#/components/schemas/../../secrets/Schema')
@@ -276,7 +276,7 @@ describe 'Security Tests' do
     it 'handles symbol keys in discriminator config' do
       config = { property_name: 'type' }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:propertyName]).to eq('type')
     end
@@ -284,7 +284,7 @@ describe 'Security Tests' do
     it 'handles string keys in discriminator config' do
       config = { 'property_name' => 'type' }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       # Builder uses symbol keys, so string key lookup returns nil propertyName
       expect(result[:propertyName]).to be_nil
@@ -299,7 +299,7 @@ describe 'Security Tests' do
         }
       }
 
-      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::DiscriminatorBuilder.build(config)
 
       expect(result[:mapping].keys.size).to eq(2)
     end
