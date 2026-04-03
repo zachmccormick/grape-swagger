@@ -408,5 +408,46 @@ describe GrapeSwagger::OpenAPI::CallbackBuilder do
         expect(schema[:properties]).to have_key(:timestamp)
       end
     end
+
+    context 'custom content types' do
+      it 'uses content_type from request config' do
+        callbacks = {
+          onEvent: {
+            url: '{$request.body#/callbackUrl}',
+            request: {
+              content_type: 'application/xml',
+              schema: { '$ref' => '#/components/schemas/Event' }
+            },
+            responses: { 200 => { description: 'OK' } }
+          }
+        }
+
+        result = described_class.build(callbacks, version_3_1_0)
+        content = result['onEvent'].values.first[:post][:requestBody][:content]
+        expect(content).to have_key('application/xml')
+        expect(content).not_to have_key('application/json')
+      end
+
+      it 'uses content_type from response config' do
+        callbacks = {
+          onEvent: {
+            url: '{$request.body#/callbackUrl}',
+            request: { schema: { type: 'object' } },
+            responses: {
+              200 => {
+                description: 'OK',
+                content_type: 'text/plain',
+                schema: { type: 'string' }
+              }
+            }
+          }
+        }
+
+        result = described_class.build(callbacks, version_3_1_0)
+        response = result['onEvent'].values.first[:post][:responses]['200']
+        expect(response[:content]).to have_key('text/plain')
+        expect(response[:content]).not_to have_key('application/json')
+      end
+    end
   end
 end

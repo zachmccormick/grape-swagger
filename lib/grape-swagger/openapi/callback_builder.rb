@@ -101,19 +101,14 @@ module GrapeSwagger
         # @param request_config [Hash] Request configuration
         # @return [Hash] Content object with media types
         def build_content(request_config)
-          # Default to application/json
-          media_type = 'application/json'
+          media_type = request_config[:content_type] || 'application/json'
 
-          content = {
-            media_type => {
-              schema: build_schema(request_config[:schema])
-            }
+          media_type_object = {
+            schema: build_schema(request_config[:schema])
           }
+          media_type_object[:examples] = request_config[:examples] if request_config[:examples]
 
-          # Add examples if present
-          content[media_type][:examples] = request_config[:examples] if request_config[:examples]
-
-          content
+          { media_type => media_type_object }
         end
 
         # Build schema object
@@ -173,8 +168,9 @@ module GrapeSwagger
 
           # Add content if schema is present
           if response_config[:schema]
+            media_type = response_config[:content_type] || 'application/json'
             response[:content] = {
-              'application/json' => {
+              media_type => {
                 schema: build_schema(response_config[:schema])
               }
             }
