@@ -18,7 +18,7 @@ module GrapeSwagger
             oneOf: schemas.map { |s| normalize_schema_ref(s) }
           }
 
-          result[:discriminator] = DiscriminatorBuilder.build(discriminator, version) if discriminator
+          result[:discriminator] = DiscriminatorBuilder.build(discriminator) if discriminator
 
           result
         end
@@ -37,7 +37,7 @@ module GrapeSwagger
             anyOf: schemas.map { |s| normalize_schema_ref(s) }
           }
 
-          result[:discriminator] = DiscriminatorBuilder.build(discriminator, version) if discriminator
+          result[:discriminator] = DiscriminatorBuilder.build(discriminator) if discriminator
 
           result
         end

@@ -2,48 +2,29 @@
 
 module GrapeSwagger
   module OpenAPI
+    # Builds OpenAPI 3.1.0 discriminator objects.
+    # Swagger 2.0 discriminators (simple propertyName strings) are handled
+    # natively by grape-swagger's existing definition logic.
     class DiscriminatorBuilder
       class << self
-        # Builds discriminator object for OpenAPI 3.1.0 or Swagger 2.0
+        # Builds discriminator object for OpenAPI 3.1.0
         #
         # @param discriminator_config [Hash, nil] Discriminator configuration
-        # @param version [GrapeSwagger::OpenAPI::Version] The OpenAPI version
-        # @return [Hash, String, nil] Discriminator object or nil
-        def build(discriminator_config, version)
+        # @return [Hash, nil] Discriminator object with propertyName and optional mapping
+        def build(discriminator_config)
           return nil unless discriminator_config
           return nil if discriminator_config.empty?
 
-          if version.swagger_2_0?
-            build_swagger_2_0(discriminator_config)
-          else
-            build_openapi_3_1(discriminator_config)
-          end
-        end
-
-        private
-
-        # Build OpenAPI 3.1.0 discriminator object
-        #
-        # @param config [Hash] Discriminator configuration
-        # @return [Hash] Discriminator object with propertyName and optional mapping
-        def build_openapi_3_1(config)
           result = {
-            propertyName: config[:property_name]
+            propertyName: discriminator_config[:property_name]
           }
 
-          result[:mapping] = build_mapping(config[:mapping]) if config[:mapping]
+          result[:mapping] = build_mapping(discriminator_config[:mapping]) if discriminator_config[:mapping]
 
           result
         end
 
-        # Build Swagger 2.0 discriminator (simpler format)
-        # Swagger 2.0 only supports propertyName as a string
-        #
-        # @param config [Hash] Discriminator configuration
-        # @return [String] Property name string
-        def build_swagger_2_0(config)
-          config[:property_name]
-        end
+        private
 
         # Build mapping hash with normalized refs
         #
