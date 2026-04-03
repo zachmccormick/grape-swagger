@@ -5,9 +5,13 @@ module GrapeSwagger
     class FormatData
       class << self
         def to_format(parameters)
-          parameters.reject { |parameter| parameter[:in] == 'body' }.each do |b|
-            related_parameters = parameters.select do |p|
-              p[:name] != b[:name] && p[:name].start_with?("#{b[:name].to_s.gsub(/\[\]\z/, '')}[")
+          # Filter out $ref parameters (component references) from processing
+          # as they don't have :name or :in fields
+          processable_params = parameters.reject { |p| p['$ref'] || p[:$ref] }
+
+          processable_params.reject { |parameter| parameter[:in] == 'body' }.each do |b|
+            related_parameters = processable_params.select do |p|
+              p[:name] != b[:name] && p[:name]&.start_with?("#{b[:name].to_s.gsub(/\[\]\z/, '')}[")
             end
             parameters.reject! { |p| p[:name] == b[:name] } if move_down(b, related_parameters)
           end
