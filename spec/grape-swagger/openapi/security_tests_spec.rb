@@ -4,7 +4,6 @@ require 'spec_helper'
 
 describe 'Security Tests' do
   let(:version_3_1) { GrapeSwagger::OpenAPI::Version.new('3.1.0') }
-  let(:version_2_0) { GrapeSwagger::OpenAPI::Version.new('2.0') }
 
   describe 'input sanitization' do
     it 'handles special characters in discriminator mapping keys' do
@@ -103,7 +102,7 @@ describe 'Security Tests' do
         }
       }
 
-      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config)
 
       expect(result[:flows][:authorizationCode][:authorizationUrl]).to eq('https://auth.example.com/authorize')
     end
@@ -114,7 +113,7 @@ describe 'Security Tests' do
         openid_connect_url: 'https://auth.example.com/.well-known/openid-configuration'
       }
 
-      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config)
 
       expect(result[:openIdConnectUrl]).to eq('https://auth.example.com/.well-known/openid-configuration')
     end
@@ -131,7 +130,7 @@ describe 'Security Tests' do
         }
       }
 
-      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config)
 
       expect(result[:flows][:authorizationCode][:authorizationUrl]).to eq('http://insecure.example.com/auth')
     end

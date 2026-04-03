@@ -164,17 +164,15 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
   end
 
   describe 'security scheme compatibility' do
-    it 'builds API key scheme for both versions' do
+    it 'builds API key scheme' do
       config = { type: 'apiKey', name: 'X-API-Key', in: 'header' }
 
-      swagger_result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_2_0)
-      openapi_result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config)
 
-      expect(swagger_result[:type]).to eq('apiKey')
-      expect(openapi_result[:type]).to eq('apiKey')
+      expect(result[:type]).to eq('apiKey')
     end
 
-    it 'builds OAuth2 scheme for both versions' do
+    it 'builds OAuth2 scheme' do
       config = {
         type: 'oauth2',
         flows: {
@@ -186,51 +184,25 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
         }
       }
 
-      swagger_result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_2_0)
-      openapi_result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config)
 
-      expect(swagger_result[:type]).to eq('oauth2')
-      expect(openapi_result[:type]).to eq('oauth2')
+      expect(result[:type]).to eq('oauth2')
     end
 
-    it 'returns nil for OpenID Connect in Swagger 2.0' do
+    it 'builds OpenID Connect' do
       config = { type: 'openIdConnect', openid_connect_url: 'https://example.com' }
 
-      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_2_0)
-
-      expect(result).to be_nil
-    end
-
-    it 'builds OpenID Connect for OpenAPI 3.1.0' do
-      config = { type: 'openIdConnect', openid_connect_url: 'https://example.com' }
-
-      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config)
 
       expect(result[:type]).to eq('openIdConnect')
     end
 
-    it 'returns nil for mutualTLS in Swagger 2.0' do
+    it 'builds mutualTLS' do
       config = { type: 'mutualTLS' }
 
-      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_2_0)
-
-      expect(result).to be_nil
-    end
-
-    it 'builds mutualTLS for OpenAPI 3.1.0' do
-      config = { type: 'mutualTLS' }
-
-      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_3_1)
+      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config)
 
       expect(result[:type]).to eq('mutualTLS')
-    end
-
-    it 'converts http scheme to basic in Swagger 2.0' do
-      config = { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
-
-      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(config, version_2_0)
-
-      expect(result[:type]).to eq('basic')
     end
   end
 
@@ -391,14 +363,14 @@ describe 'OpenAPI 3.1.0 Regression Suite' do
       expect(result).to be_nil
     end
 
-    it 'SecuritySchemeBuilder raises on nil' do
-      expect do
-        GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(nil, version_3_1)
-      end.to raise_error(ArgumentError, 'security_config cannot be nil')
+    it 'SecuritySchemeBuilder handles nil' do
+      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build(nil)
+
+      expect(result).to eq({})
     end
 
     it 'SecuritySchemeBuilder handles empty hash' do
-      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build({}, version_3_1)
+      result = GrapeSwagger::OpenAPI::SecuritySchemeBuilder.build({})
 
       expect(result).to eq({})
     end
